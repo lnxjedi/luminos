@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"os"
 
-	"menteslibres.net/gosexy/cli"
+	"github.com/lnxjedi/cli"
 )
 
 // initCommand is the structure that provides instructions for the "luminos

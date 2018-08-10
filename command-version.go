@@ -24,7 +24,7 @@ package main
 import (
 	"fmt"
 
-	"menteslibres.net/gosexy/cli"
+	"github.com/lnxjedi/cli"
 )
 
 // versionCommand is the structure that provides instructions for the "luminos

@@ -36,11 +36,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lnxjedi/luminos/page"
+	"github.com/lnxjedi/luminos/watcher"
+	"github.com/lnxjedi/to"
+	"github.com/lnxjedi/yaml"
 	"github.com/russross/blackfriday"
-	"menteslibres.net/gosexy/to"
-	"menteslibres.net/gosexy/yaml"
-	"menteslibres.net/luminos/page"
-	"menteslibres.net/luminos/watcher"
 )
 
 const (

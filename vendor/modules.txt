@@ -1,0 +1,19 @@
+# github.com/extemporalgenome/slug v0.0.0-20150414033109-0320c85e32e0
+github.com/extemporalgenome/slug
+# github.com/gosexy/to v0.0.0-20141221203644-c20e083e3123
+github.com/gosexy/to
+# github.com/lnxjedi/cli v0.0.0-20130410001115-1e5b1f905739
+github.com/lnxjedi/cli
+# github.com/lnxjedi/dig v0.0.0-20180314222429-58395a757ac0
+github.com/lnxjedi/dig
+# github.com/lnxjedi/to v0.0.0-20141221203644-c20e083e3123
+github.com/lnxjedi/to
+# github.com/lnxjedi/yaml v0.0.0-20180810170849-9ab65a482949
+github.com/lnxjedi/yaml
+# github.com/russross/blackfriday v1.5.1
+github.com/russross/blackfriday
+# golang.org/x/text v0.3.0
+golang.org/x/text/unicode/norm
+golang.org/x/text/transform
+# gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
+gopkg.in/yaml.v1

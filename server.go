@@ -30,10 +30,10 @@ import (
 	"os"
 	"strings"
 
-	"menteslibres.net/gosexy/to"
-	"menteslibres.net/gosexy/yaml"
-	"menteslibres.net/luminos/host"
-	"menteslibres.net/luminos/watcher"
+	"github.com/lnxjedi/luminos/host"
+	"github.com/lnxjedi/luminos/watcher"
+	"github.com/lnxjedi/to"
+	"github.com/lnxjedi/yaml"
 )
 
 // Map of hosts.

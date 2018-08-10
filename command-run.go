@@ -31,9 +31,9 @@ import (
 	"net/http/fcgi"
 	"os"
 
-	"menteslibres.net/gosexy/cli"
-	"menteslibres.net/gosexy/to"
-	"menteslibres.net/gosexy/yaml"
+	"github.com/lnxjedi/cli"
+	"github.com/lnxjedi/to"
+	"github.com/lnxjedi/yaml"
 )
 
 // Default values
