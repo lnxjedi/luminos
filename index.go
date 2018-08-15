@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/bradleypeabody/fulltext"
@@ -44,6 +45,8 @@ var fileExtensions = map[string]bool{
 	".txt":  true,
 	".html": true,
 }
+
+var camelCaseRegex = regexp.MustCompile("([a-z][a-z])([A-Z][a-z])")
 
 func index(docroot, content string) error {
 	var f *os.File
@@ -77,14 +80,18 @@ func index(docroot, content string) error {
 		cpath := strings.TrimPrefix(fpath, content)
 		ext := path.Ext(cpath)
 		bare := strings.TrimSuffix(path.Base(cpath), ext)
+		pagetitle := strings.Replace(bare, "-", " ", -1)
+		pagetitle = strings.Replace(pagetitle, "_", " ", -1)
+		// try to detect camel case and insert spaces
+		pagetitle = camelCaseRegex.ReplaceAllString(pagetitle, "$1 $2")
 		if fileExtensions[path.Ext(cpath)] {
 			c, err := ioutil.ReadFile(fpath)
 			if err != nil {
 				fmt.Printf("Error reading '%s' for indexing: %v\n", cpath, err)
 			} else {
-				fmt.Printf("Indexing %s: %s\n", bare, cpath)
+				fmt.Printf("Indexing %s: %s\n", pagetitle, cpath)
 			}
-			// Index the title
+			// Index the title; strip out space and underscore
 			tdoc := fulltext.IndexDoc{
 				Id:         []byte("t:" + cpath),
 				StoreValue: []byte(cpath),
