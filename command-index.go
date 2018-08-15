@@ -70,7 +70,10 @@ func (c *indexCommand) Execute() (err error) {
 		content, err := host.GetContentPath()
 		if err == nil {
 			fmt.Printf("Host '%s' has content path '%s'\n", name, content)
-			index(host.DocumentRoot, content)
+			err := index(host.DocumentRoot, content)
+			if err != nil {
+				fmt.Printf("Error indexing '%s': %v", name, err)
+			}
 		} else {
 			fmt.Printf("Error locating content path for '%s': %v", name, err)
 		}
