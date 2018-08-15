@@ -1,7 +1,11 @@
+github.com/bradleypeabody/fulltext v0.0.0-20150510224040-a28063e64b3d h1:/w1a+FP/SozeAedBy/hSdM9WVBVt8iX+p5fu/0rs65Y=
+github.com/bradleypeabody/fulltext v0.0.0-20150510224040-a28063e64b3d/go.mod h1:ARe8ApM8pu8PQC9c1VUuyhC8GuFf+6Zh4Xu6xisMbsw=
 github.com/extemporalgenome/slug v0.0.0-20150414033109-0320c85e32e0 h1:0A9+8DBvlpto0mr+SD1NadV5liSIAZkWnvyshwk88Bc=
 github.com/extemporalgenome/slug v0.0.0-20150414033109-0320c85e32e0/go.mod h1:96eSBMO0aE2dcsEygXzIsvGyOf7bM5kWuqVCPEgwLEI=
 github.com/gosexy/to v0.0.0-20141221203644-c20e083e3123 h1:6Q7VB4v0aEgIE6BtsbJhEH0KgFE0f+FHAxXePQp9Klc=
 github.com/gosexy/to v0.0.0-20141221203644-c20e083e3123/go.mod h1:oQuuq9ZkoRpy+2mhINlY3ZrwgywR77yPXmFpP6vCr/w=
+github.com/jbarham/go-cdb v0.0.0-20130611141714-206e6dfad052 h1:CEjfA/eDiwaBrG7O0BH8lFZ1iBS27zys66FmtU12W4s=
+github.com/jbarham/go-cdb v0.0.0-20130611141714-206e6dfad052/go.mod h1:Bn4KuuSnoKSI20UMDpaE/A86m4eT2PKTFB5YIkFxG7Y=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=

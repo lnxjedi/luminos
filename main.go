@@ -38,9 +38,8 @@ func main() {
 	// Software properties.
 	cli.Name = "Luminos Markdown Server"
 	cli.Homepage = "https://github.com/lnxjedi/luminos"
-	cli.Author = "J. Carlos Nieto"
+	cli.Author = "J. Carlos Nieto / David Parsley"
 	cli.Version = Version
-	cli.AuthorEmail = "jose.carlos@menteslibres.net"
 
 	// Shows banner
 	cli.Banner()

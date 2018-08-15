@@ -102,7 +102,8 @@ func fixDeprecatedSyntax(s string) string {
 	return s
 }
 
-func (host *Host) getContentPath() (string, error) {
+// GetContentPath provides the relative path to site content
+func (host *Host) GetContentPath() (string, error) {
 	var directories []string
 
 	contentdir := to.String(host.Settings.Get("content", "markdown"))
@@ -122,7 +123,7 @@ func (host *Host) getContentPath() (string, error) {
 		}
 	}
 
-	return "", errors.New(`Content directory was not found.`)
+	return "", errors.New(`content directory was not found`)
 }
 
 // readFile attempts to read a file from disk and returns its contents.
@@ -363,7 +364,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		// Absolute document root.
 		var docroot string
-		if docroot, err = host.getContentPath(); err != nil {
+		if docroot, err = host.GetContentPath(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

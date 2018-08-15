@@ -125,7 +125,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 
 	// Loading and verifying host entries
 	if entries, ok = y.Get("hosts").(map[interface{}]interface{}); ok == false {
-		return nil, errors.New("Missing \"hosts\" entry.")
+		return nil, errors.New("missing \"hosts\" entry")
 	}
 
 	h := map[string]*host.Host{}
@@ -137,16 +137,16 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 
 		info, err := os.Stat(path)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to validate host %s: %q.", name, err)
+			return nil, fmt.Errorf("failed to validate host %s: %q", name, err)
 		}
 		if info.IsDir() == false {
-			return nil, fmt.Errorf("Host %s does not point to a directory.", name)
+			return nil, fmt.Errorf("host %s does not point to a directory", name)
 		}
 
 		h[name], err = host.New(name, path)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize host %s: %q.", name, err)
+			return nil, fmt.Errorf("failed to initialize host %s: %q", name, err)
 		}
 	}
 

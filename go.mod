@@ -1,8 +1,10 @@
 module github.com/lnxjedi/luminos
 
 require (
+	github.com/bradleypeabody/fulltext v0.0.0-20150510224040-a28063e64b3d
 	github.com/extemporalgenome/slug v0.0.0-20150414033109-0320c85e32e0
 	github.com/gosexy/to v0.0.0-20141221203644-c20e083e3123 // indirect
+	github.com/jbarham/go-cdb v0.0.0-20130611141714-206e6dfad052 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lnxjedi/cli v0.0.0-20130410001115-1e5b1f905739
 	github.com/lnxjedi/dig v0.0.0-20180810172411-45aeba0ab1b4 // indirect
