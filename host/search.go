@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/bradleypeabody/fulltext"
 	"github.com/lnxjedi/luminos/page"
@@ -28,22 +29,29 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 		return
 	} else {
 		defer s.Close()
-		sr, err := s.SimpleSearch("Horatio", 20)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if len(sr.Items) > 0 {
-			c.Write([]byte("<ul>\n"))
-			for _, v := range sr.Items {
-				si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
-				c.Write([]byte(si))
+		q := req.URL.Query()
+		terms, ok := q["terms"]
+		if ok {
+			search := strings.Join(terms, " ")
+			sr, err := s.SimpleSearch(search, 20)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
+				return
 			}
-			c.Write([]byte("</ul>\n"))
+			if len(sr.Items) > 0 {
+				c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
+				c.Write([]byte("<ul>\n"))
+				for _, v := range sr.Items {
+					si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
+					c.Write([]byte(si))
+				}
+				c.Write([]byte("</ul>\n"))
+			} else {
+				c.Write([]byte("<h3>No results</h3>"))
+			}
 		} else {
 			c.Write([]byte("<h3>No results</h3>"))
 		}
-		fmt.Println(string(c.Bytes()))
 	}
 
 	p := &page.Page{}
