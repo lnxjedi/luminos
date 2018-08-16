@@ -47,7 +47,8 @@ const (
 var settings *yaml.Yaml
 
 // Command line settings.
-var flagSettings = flag.String("c", envSettingsFile, "Path to the settings.yaml file.")
+var flagSettings = flag.String("c", envSettingsFile, "Path to the settings.yaml file")
+var flagIndex = flag.Bool("i", false, "Generate search index on start")
 
 // runCommand is the structure that provides instructions for the "luminos
 // run" subcommand.
@@ -68,23 +69,38 @@ func (c *runCommand) Execute() (err error) {
 
 	// It must not return an error.
 	if err != nil {
-		return fmt.Errorf("Error while opening %s: %q", *flagSettings, err)
+		return fmt.Errorf("error while opening %s: %q", *flagSettings, err)
 	}
 
 	// We must have a value in stat.
 	if stat == nil {
-		return fmt.Errorf("Could not load settings file: %s.", *flagSettings)
+		return fmt.Errorf("could not load settings file: %s", *flagSettings)
 	}
 
 	// And the file must not be a directory.
 	if stat.IsDir() {
-		return fmt.Errorf("Could not open %s: it's a directory!", *flagSettings)
+		return fmt.Errorf("could not open %s: it's a directory", *flagSettings)
 	}
 
 	// Now that we're positively sure that we have a valid file, let's try to
 	// read settings from it.
 	if settings, err = loadSettings(*flagSettings); err != nil {
-		return fmt.Errorf("Error while reading settings file %s: %q", *flagSettings, err)
+		return fmt.Errorf("error while reading settings file %s: %q", *flagSettings, err)
+	}
+
+	if *flagIndex {
+		for name, host := range hosts {
+			content, err := host.GetContentPath()
+			if err == nil {
+				fmt.Printf("Host '%s' has content path '%s'\n", name, content)
+				err := index(host.DocumentRoot, content)
+				if err != nil {
+					return fmt.Errorf("error indexing '%s': %v", name, err)
+				}
+			} else {
+				return fmt.Errorf("error locating content path for '%s': %v", name, err)
+			}
+		}
 	}
 
 	// Starting settings watcher.
@@ -142,7 +158,7 @@ func init() {
 	cli.Register("run", cli.Entry{
 		Name:        "run",
 		Description: "Runs a luminos server.",
-		Arguments:   []string{"c"},
+		Arguments:   []string{"c", "i"},
 		Command:     &runCommand{},
 	})
 

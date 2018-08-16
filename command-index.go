@@ -63,7 +63,7 @@ func (c *indexCommand) Execute() (err error) {
 	// Now that we're positively sure that we have a valid file, let's try to
 	// read settings from it.
 	if settings, err = loadSettings(*flagSettings); err != nil {
-		return fmt.Errorf("Error while reading settings file %s: %q", *flagSettings, err)
+		return fmt.Errorf("error while reading settings file %s: %q", *flagSettings, err)
 	}
 
 	for name, host := range hosts {
@@ -72,10 +72,10 @@ func (c *indexCommand) Execute() (err error) {
 			fmt.Printf("Host '%s' has content path '%s'\n", name, content)
 			err := index(host.DocumentRoot, content)
 			if err != nil {
-				fmt.Printf("Error indexing '%s': %v", name, err)
+				return fmt.Errorf("error indexing '%s': %v", name, err)
 			}
 		} else {
-			fmt.Printf("Error locating content path for '%s': %v", name, err)
+			return fmt.Errorf("error locating content path for '%s': %v", name, err)
 		}
 	}
 
