@@ -359,6 +359,11 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	if reqpath == "/search" {
+		host.doSearch(w, req)
+		return
+	}
+
 	// Was the status already changed?
 	if status == http.StatusNotFound {
 
@@ -432,6 +437,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
 				p.IsHome = true
 			}
+			fmt.Printf("FP: %s, FD: %s, BP: %s, BD: %s\n", p.FilePath, p.FileDir, p.BasePath, p.BaseDir)
 
 			// werc-like header and footer.
 			ffile, fstat := guessFile(p.FileDir+"_footer", true)
@@ -462,6 +468,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if status == http.StatusNotFound {
 		http.Error(w, "Not found", http.StatusNotFound)
+		fmt.Printf("Path not found: %s\n", reqpath)
 	}
 
 	// Log line.
@@ -675,10 +682,10 @@ func (host *Host) loadSettings() error {
 	if err == nil {
 		settings, err = yaml.Open(file)
 		if err != nil {
-			return fmt.Errorf(`Could not parse settings file (%s): %q`, file, err)
+			return fmt.Errorf(`could not parse settings file (%s): %q`, file, err)
 		}
 	} else {
-		return fmt.Errorf(`Error trying to open settings file (%s): %q.`, file, err)
+		return fmt.Errorf(`error trying to open settings file (%s): %q`, file, err)
 	}
 
 	if host.Watcher != nil {

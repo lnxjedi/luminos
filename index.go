@@ -54,7 +54,7 @@ func index(docroot, content string) error {
 
 	content = path.Clean(content)
 
-	f, err = os.Create(path.Join(docroot, "index.cdb"))
+	f, err = os.Create(path.Join(docroot, "search.cdb"))
 	if err != nil {
 		return fmt.Errorf("creating index file: %v", err)
 	}
@@ -66,12 +66,7 @@ func index(docroot, content string) error {
 	defer idx.Close()
 
 	// stop words won't be indexed as search terms
-	idx.StopWordCheck = func(s string) bool {
-		if localStopWords[s] {
-			return true
-		}
-		return fulltext.STOPWORDS_EN[s]
-	}
+	idx.StopWordCheck = fulltext.EnglishStopWordChecker
 
 	findex := func(fpath string, info os.FileInfo, err error) error {
 		if info.IsDir() {
@@ -91,11 +86,11 @@ func index(docroot, content string) error {
 			} else {
 				fmt.Printf("Indexing %s: %s\n", pagetitle, cpath)
 			}
-			// Index the title; strip out space and underscore
+			// Index the title
 			tdoc := fulltext.IndexDoc{
 				Id:         []byte("t:" + cpath),
 				StoreValue: []byte(cpath),
-				IndexValue: []byte(bare),
+				IndexValue: []byte(pagetitle),
 			}
 			idx.AddDoc(tdoc)
 			// Index the content
