@@ -291,7 +291,7 @@ func (host *Host) readFile(file string) ([]byte, error) {
 	}
 
 	if strings.HasSuffix(file, ".md") {
-		buf = blackfriday.MarkdownCommon(buf)
+		buf = blackfriday.Run(buf, blackfriday.WithExtensions(blackfriday.NoEmptyLineBeforeBlock))
 	}
 
 	return buf, nil
