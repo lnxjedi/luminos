@@ -33,17 +33,23 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 		terms, ok := q["terms"]
 		if ok {
 			search := strings.Join(terms, " ")
-			sr, err := s.SimpleSearch(search, 20)
+			sr, err := s.SimpleSearch(search, 50)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
 				return
 			}
 			if len(sr.Items) > 0 {
+				l := make(map[string]struct{})
 				c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
 				c.Write([]byte("<ul>\n"))
 				for _, v := range sr.Items {
-					si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
-					c.Write([]byte(si))
+					key := string(v.StoreValue)
+					_, found := l[key]
+					if !found {
+						si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
+						c.Write([]byte(si))
+						l[key] = struct{}{}
+					}
 				}
 				c.Write([]byte("</ul>\n"))
 			} else {
