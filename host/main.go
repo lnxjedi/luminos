@@ -51,7 +51,20 @@ const (
 var (
 	// Used to guess when dealing with an external URL.
 	isExternalLinkPattern = regexp.MustCompile(`^[a-zA-Z0-9]+:\/\/`)
+	// Extensions to directly serve
+	directFileTypes map[string]struct{}
 )
+
+// Map of file extensions for files to serve up directly
+func init() {
+	directFileTypes = map[string]struct{}{
+		".jpg":  struct{}{},
+		".txt":  struct{}{},
+		".png":  struct{}{},
+		".jpeg": struct{}{},
+		".svg":  struct{}{},
+	}
+}
 
 // Host is the struct that represents virtual hosts.
 type Host struct {
@@ -364,15 +377,33 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Absolute document root.
+	var docroot string
+	if docroot, err = host.GetContentPath(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if status == http.StatusNotFound {
+		directFile := docroot + pathSeparator + reqpath
+
+		stat, err = os.Stat(directFile)
+
+		if err == nil {
+			if stat.IsDir() == false {
+				ext := path.Ext(directFile)
+				_, direct := directFileTypes[ext]
+				if direct {
+					status = http.StatusOK // Changing status.
+					http.ServeFile(w, req, directFile)
+					size = int(stat.Size())
+				}
+			}
+		}
+	}
+
 	// Was the status already changed?
 	if status == http.StatusNotFound {
-
-		// Absolute document root.
-		var docroot string
-		if docroot, err = host.GetContentPath(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		// Defining a filename to look for.
 		testFile := docroot + pathSeparator + reqpath
