@@ -85,7 +85,7 @@ func route(req *http.Request) *host.Host {
 
 	// No host matched, let's use the default host.
 	if match == "" {
-		log.Printf("Path %v could not match any route, falling back to the default.\n", path)
+		// log.Printf("Path %v could not match any route, falling back to the default.\n", path)
 		match = "default"
 	}
 
