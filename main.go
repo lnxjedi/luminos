@@ -32,7 +32,7 @@ import (
 const pathSeparator = string(os.PathSeparator)
 
 // Version holds the software version.
-const Version = "0.9"
+const Version = "v0.9.1-snapshot"
 
 func main() {
 	// Software properties.
