@@ -33,13 +33,7 @@ import (
 	"github.com/bradleypeabody/fulltext"
 )
 
-// TODO: read stop words and extensions from site settings
-var localStopWords = map[string]bool{
-	"README":    true,
-	"index":     true,
-	"CHANGELOG": true,
-}
-
+// TODO: read extensions for indexing from site config
 var fileExtensions = map[string]bool{
 	".md":   true,
 	".txt":  true,
