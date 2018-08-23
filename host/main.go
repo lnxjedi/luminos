@@ -55,17 +55,6 @@ var (
 	directFileTypes map[string]struct{}
 )
 
-// Map of file extensions for files to serve up directly
-func init() {
-	directFileTypes = map[string]struct{}{
-		".jpg":  struct{}{},
-		".txt":  struct{}{},
-		".png":  struct{}{},
-		".jpeg": struct{}{},
-		".svg":  struct{}{},
-	}
-}
-
 // Host is the struct that represents virtual hosts.
 type Host struct {
 	// Host name
@@ -392,8 +381,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if err == nil {
 			if stat.IsDir() == false {
 				ext := path.Ext(directFile)
-				_, direct := directFileTypes[ext]
-				if direct {
+				if ext != ".md" {
 					status = http.StatusOK // Changing status.
 					http.ServeFile(w, req, directFile)
 					size = int(stat.Size())
