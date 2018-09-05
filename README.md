@@ -28,21 +28,15 @@ Usage: luminos <arguments> <command>
 Available commands for luminos:
 
         help            Shows information about the given command.
-        init            Creates a new Luminos site scaffold in the given PATH.
+        index           Generates Index(es) for Luminos sites
         run             Runs a luminos server.
         version         Prints software version.
 
 Use "luminos help <command>" to view more information about a command.
 ```
 
-Use `luminos init` to create an empty site:
-
-```sh
-cd ~/projects
-luminos init test-site
-```
-
-then you can ask `luminos run` to serve it:
+You can start by copying the example site in the `_example` directory to
+e.g. `test-site`, then you can ask `luminos run` to serve it:
 
 ```sh
 cd test-site
