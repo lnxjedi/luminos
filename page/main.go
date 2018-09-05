@@ -203,7 +203,7 @@ func fileFilter(f os.FileInfo) bool {
 func createTitle(s string) string {
 	s = removeKnownExtension(s)
 	s = titleReplacePattern.ReplaceAllString(s, " ")
-	return strings.Title(s[:1]) + s[1:]
+	return s
 }
 
 // CreateLink returns a link to another page.
@@ -212,13 +212,13 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) anchor {
 
 	if file.IsDir() == true {
 		item.URL = prefix + file.Name()
+		item.Text = createTitle(file.Name()) + "/"
 	} else {
 		item.URL = prefix + removeKnownExtension(file.Name())
+		item.Text = createTitle(file.Name())
 	}
 
 	item.URL = path.Clean(item.URL)
-
-	item.Text = createTitle(file.Name())
 
 	return item
 }
