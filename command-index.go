@@ -88,7 +88,7 @@ func init() {
 
 	cli.Register("index", cli.Entry{
 		Name:        "index",
-		Description: "Generates Index(es) for Luminos sites",
+		Description: "Generates search index(es) for Luminos sites.",
 		Arguments:   []string{"c"},
 		Command:     &indexCommand{},
 	})
