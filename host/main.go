@@ -128,8 +128,8 @@ func (host *Host) GetContentPath() (string, error) {
 	return "", errors.New(`content directory was not found`)
 }
 
-// readFile attempts to read a file from disk and returns its contents.
-func readFile(file string) (string, error) {
+// readRawFile attempts to read a file from disk and returns its contents with no processing.
+func readRawFile(file string) (string, error) {
 	var buf []byte
 	var err error
 
@@ -269,9 +269,9 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 	return "", nil
 }
 
-// readFile opens a file and reads its contents, if the file has the .md
+// readContentFile opens a file and reads its contents, if the file has the .md
 // extension the contents are parsed and HTML is returned.
-func (host *Host) readFile(file string) ([]byte, error) {
+func (host *Host) readContentFile(file string) ([]byte, error) {
 	var buf []byte
 	var err error
 
@@ -434,7 +434,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 
 			// Reading contents.
-			content, err := host.readFile(localFile)
+			content, err := host.readContentFile(localFile)
 
 			if err == nil {
 				p.Content = template.HTML(content)
@@ -447,7 +447,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			hfile, hstat := guessFile(p.FileDir+"_header", true)
 
 			if hstat != nil {
-				hcontent, herr := host.readFile(hfile)
+				hcontent, herr := host.readContentFile(hfile)
 				if herr == nil {
 					p.ContentHeader = template.HTML(hcontent)
 				}
@@ -462,7 +462,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ffile, fstat := guessFile(p.FileDir+"_footer", true)
 
 			if fstat != nil {
-				fcontent, ferr := host.readFile(ffile)
+				fcontent, ferr := host.readContentFile(ffile)
 				if ferr == nil {
 					p.ContentFooter = template.HTML(fcontent)
 				}
@@ -509,7 +509,7 @@ func (host *Host) loadTemplate(file string) error {
 
 	// Reading template file.
 	var text string
-	if text, err = readFile(file); err != nil {
+	if text, err = readRawFile(file); err != nil {
 		return err
 	}
 
@@ -571,13 +571,15 @@ func (host *Host) loadTemplates() error {
 
 			if err != nil {
 				log.Printf("%s: Template error in file %s: %q\n", host.Name, file, err)
+			} else {
+				log.Printf("loaded template: %s\n", file)
 			}
 
 		}
 	}
 
 	if _, ok := host.Templates["index.tpl"]; ok == false {
-		return fmt.Errorf("Template %s could not be found.", "index.tpl")
+		return fmt.Errorf("default Template %s could not be found", "index.tpl")
 	}
 
 	return nil
@@ -749,9 +751,9 @@ func New(name string, root string) (*Host, error) {
 		"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
 		"asset":  func(s string) string { return host.asset(s) },
 		"include": func(f string) string {
-			s, err := readFile(host.DocumentRoot + "/" + f)
+			s, err := readRawFile(host.DocumentRoot + "/" + f)
 			if err != nil {
-				log.Printf("readFile: %q", err)
+				log.Printf("readContentFile: %q", err)
 			}
 			return s
 		},

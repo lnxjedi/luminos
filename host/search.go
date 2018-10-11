@@ -75,7 +75,7 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	hfile, hstat := guessFile(p.FileDir+"_header", true)
 
 	if hstat != nil {
-		hcontent, herr := host.readFile(hfile)
+		hcontent, herr := host.readContentFile(hfile)
 		if herr == nil {
 			p.ContentHeader = template.HTML(hcontent)
 		}
@@ -85,7 +85,7 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	ffile, fstat := guessFile(p.FileDir+"_footer", true)
 
 	if fstat != nil {
-		fcontent, ferr := host.readFile(ffile)
+		fcontent, ferr := host.readContentFile(ffile)
 		if ferr == nil {
 			p.ContentFooter = template.HTML(fcontent)
 		}
