@@ -41,6 +41,8 @@ import (
 	"github.com/lnxjedi/to"
 	"github.com/lnxjedi/yaml"
 	"github.com/russross/blackfriday"
+
+	jyaml "github.com/ghodss/yaml"
 )
 
 const (
@@ -80,6 +82,20 @@ type Host struct {
 	Watcher *watcher.Watcher
 	// Template root
 	TemplateRoot string
+}
+
+// Page frontmatter
+type frontMatter struct {
+	Template string
+	// True when markdown content shouldn't be rendered
+	Raw bool
+}
+
+type structuredContent struct {
+	// Information extracted from page frontmatter
+	pageInfo frontMatter
+	// Page content without frontmatter
+	Content []byte
 }
 
 // Expected extensions. Elements on the left have precedence.
@@ -269,34 +285,71 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 	return "", nil
 }
 
-// readContentFile opens a file and reads its contents, if the file has the .md
-// extension the contents are parsed and HTML is returned.
-func (host *Host) readContentFile(file string) ([]byte, error) {
+// readContentFile opens a file and reads its contents and frontmatter.
+// If the file has the "*.md" extension, the content is rendered to HTML
+// unless Raw is set in the frontmatter.
+func (host *Host) readContentFile(file string) (structuredContent, error) {
+	var sc structuredContent
 	var buf []byte
 	var err error
 
 	if buf, err = ioutil.ReadFile(file); err != nil {
-		return nil, err
+		return sc, err
 	}
 
 	if strings.HasSuffix(file, ".tpl") {
 		var out bytes.Buffer
 		tpl, err := template.New("").Funcs(host.funcMap).Parse(string(buf))
 		if err != nil {
-			return nil, err
+			return sc, err
 		}
 		if err := tpl.Execute(&out, nil); err != nil {
-			return nil, err
+			return sc, err
 		}
 		file = file[:len(file)-4]
 		buf = out.Bytes()
+	} else {
+		r := bytes.NewBuffer(buf)
+		firstLine, err := r.ReadString('\n')
+		if err != nil {
+			return sc, err
+		}
+		var end string
+		switch firstLine {
+		case "---\n":
+			end = "---\n"
+		case "<!--\n":
+			end = "-->\n"
+		case "```yaml\n":
+			end = "```\n"
+		}
+		if len(end) != 0 {
+			var fmb bytes.Buffer
+			for {
+				line, err := r.ReadBytes('\n')
+				if err != nil {
+					return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
+				}
+				if string(line) == end {
+					break
+				}
+				fmb.Write(line)
+			}
+			err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
+			if err != nil {
+				return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
+			}
+			buf = r.Bytes()
+		}
 	}
 
-	if strings.HasSuffix(file, ".md") {
+	if strings.HasSuffix(file, ".md") && !sc.pageInfo.Raw {
 		buf = blackfriday.Run(buf, blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.NoEmptyLineBeforeBlock))
 	}
 
-	return buf, nil
+	sc.Content = buf
+
+	return sc, nil
 }
 
 func chunk(value string) string {
@@ -437,7 +490,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			content, err := host.readContentFile(localFile)
 
 			if err == nil {
-				p.Content = template.HTML(content)
+				p.Content = template.HTML(content.Content)
 			}
 
 			p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
@@ -449,7 +502,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if hstat != nil {
 				hcontent, herr := host.readContentFile(hfile)
 				if herr == nil {
-					p.ContentHeader = template.HTML(hcontent)
+					p.ContentHeader = template.HTML(hcontent.Content)
 				}
 			}
 
@@ -464,7 +517,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if fstat != nil {
 				fcontent, ferr := host.readContentFile(ffile)
 				if ferr == nil {
-					p.ContentFooter = template.HTML(fcontent)
+					p.ContentFooter = template.HTML(fcontent.Content)
 				}
 			}
 
@@ -475,7 +528,11 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.ProcessContent()
 
 			// Applying template.
-			if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
+			template := "index.tpl"
+			if len(content.pageInfo.Template) != 0 {
+				template = content.pageInfo.Template
+			}
+			if err = host.Templates[template].Execute(w, p); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				status = http.StatusInternalServerError
 			} else {
@@ -751,9 +808,9 @@ func New(name string, root string) (*Host, error) {
 		"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
 		"asset":  func(s string) string { return host.asset(s) },
 		"include": func(f string) string {
-			s, err := readRawFile(host.DocumentRoot + "/" + f)
+			s, err := readRawFile(host.DocumentRoot + pathSeparator + f)
 			if err != nil {
-				log.Printf("readContentFile: %q", err)
+				log.Printf("readRawFile: %q", err)
 			}
 			return s
 		},
