@@ -260,34 +260,43 @@ func (host *Host) anchor(url, text string) template.HTML {
 }
 
 // guessFile checks for files names and returns a guessed name.
-func guessFile(file string, descend bool) (string, os.FileInfo) {
-	stat, err := os.Stat(file)
+func guessFile(file string, descend bool) (f string, s os.FileInfo) {
+	var err error
+	f = file
+	// log.Printf("Guessing for '%s'", f)
+	// defer func() {
+	// 	log.Printf("Returning guessed file '%s'", f)
+	// }()
+
+	s, err = os.Stat(file)
 
 	file = strings.TrimRight(file, pathSeparator)
 
 	if descend {
 		if err == nil {
-			if stat.IsDir() {
-				f, s := guessFile(file+pathSeparator+"index", true)
+			if s.IsDir() {
+				f, s = guessFile(file+pathSeparator+"index", true)
 				if s != nil {
-					return f, s
+					return
 				}
 			}
-			return file, stat
+			return
 		}
 		for _, extension := range extensions {
-			f, s := guessFile(file+extension, false)
+			f, s = guessFile(file+extension, false)
 			if s != nil {
-				return f, s
+				return
 			}
 		}
 	}
 
 	if err == nil {
-		return file, stat
+		return
 	}
 
-	return "", nil
+	f = ""
+	s = nil
+	return
 }
 
 // readContentFile opens a file and reads its contents and frontmatter.
