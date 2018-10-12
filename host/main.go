@@ -106,6 +106,11 @@ var extensions = []string{
 	".md.tpl",
 }
 
+// Informational and error logging to stderr; access log goes to stdout
+func init() {
+	log.SetOutput(os.Stderr)
+}
+
 // fixDeprecatedSyntax fixes old template syntax.
 func fixDeprecatedSyntax(s string) string {
 
@@ -309,37 +314,41 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 		file = file[:len(file)-4]
 		buf = out.Bytes()
 	} else {
-		r := bytes.NewBuffer(buf)
+		// maximum length of frontmatter start delimiter always < 16
+		peek := make([]byte, 16)
+		copy(peek, buf)
+		r := bytes.NewBuffer(peek)
 		firstLine, err := r.ReadString('\n')
-		if err != nil {
-			return sc, err
-		}
-		var end string
-		switch firstLine {
-		case "---\n":
-			end = "---\n"
-		case "<!--\n":
-			end = "-->\n"
-		case "```yaml\n":
-			end = "```\n"
-		}
-		if len(end) != 0 {
-			var fmb bytes.Buffer
-			for {
-				line, err := r.ReadBytes('\n')
+		if err == nil {
+			var end string
+			switch firstLine {
+			case "---\n":
+				end = "---\n"
+			case "<!--\n":
+				end = "-->\n"
+			case "```yaml\n":
+				end = "```\n"
+			}
+			if len(end) != 0 {
+				r = bytes.NewBuffer(buf)
+				r.ReadString('\n')
+				var fmb bytes.Buffer
+				for {
+					line, err := r.ReadBytes('\n')
+					if err != nil {
+						return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
+					}
+					if string(line) == end {
+						break
+					}
+					fmb.Write(line)
+				}
+				err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
 				if err != nil {
-					return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
+					return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
 				}
-				if string(line) == end {
-					break
-				}
-				fmb.Write(line)
+				buf = r.Bytes()
 			}
-			err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
-			if err != nil {
-				return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
-			}
-			buf = r.Bytes()
 		}
 	}
 
@@ -509,7 +518,6 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
 				p.IsHome = true
 			}
-			fmt.Printf("FP: %s, FD: %s, BP: %s, BD: %s\n", p.FilePath, p.FileDir, p.BasePath, p.BaseDir)
 
 			// werc-like header and footer.
 			ffile, fstat := guessFile(p.FileDir+"_footer", true)
@@ -530,8 +538,14 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			// Applying template.
 			template := "index.tpl"
 			if len(content.pageInfo.Template) != 0 {
-				template = content.pageInfo.Template
+				spect := content.pageInfo.Template
+				if _, ok := host.Templates[spect]; ok {
+					template = spect
+				} else {
+					log.Printf("Template not found: %s\n", spect)
+				}
 			}
+			log.Printf("Template is %s\n", template)
 			if err = host.Templates[template].Execute(w, p); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				status = http.StatusInternalServerError
