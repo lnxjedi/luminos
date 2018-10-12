@@ -24,40 +24,40 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var c bytes.Buffer
-	if s, err := fulltext.NewSearcher(path.Join(host.DocumentRoot, "search.cdb")); err != nil {
+	s, err := fulltext.NewSearcher(path.Join(host.DocumentRoot, "search.cdb"))
+	if err != nil {
 		http.Error(w, fmt.Sprintf("unable to open search index: %v", err), http.StatusInternalServerError)
 		return
-	} else {
-		defer s.Close()
-		q := req.URL.Query()
-		terms, ok := q["terms"]
-		if ok {
-			search := strings.Join(terms, " ")
-			sr, err := s.SimpleSearch(search, 50)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
-				return
-			}
-			if len(sr.Items) > 0 {
-				l := make(map[string]struct{})
-				c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
-				c.Write([]byte("<ul>\n"))
-				for _, v := range sr.Items {
-					key := string(v.StoreValue)
-					_, found := l[key]
-					if !found {
-						si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
-						c.Write([]byte(si))
-						l[key] = struct{}{}
-					}
+	}
+	defer s.Close()
+	q := req.URL.Query()
+	terms, ok := q["terms"]
+	if ok {
+		search := strings.Join(terms, " ")
+		sr, err := s.SimpleSearch(search, 50)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
+			return
+		}
+		if len(sr.Items) > 0 {
+			l := make(map[string]struct{})
+			c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
+			c.Write([]byte("<ul>\n"))
+			for _, v := range sr.Items {
+				key := string(v.StoreValue)
+				_, found := l[key]
+				if !found {
+					si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
+					c.Write([]byte(si))
+					l[key] = struct{}{}
 				}
-				c.Write([]byte("</ul>\n"))
-			} else {
-				c.Write([]byte("<h3>No results</h3>"))
 			}
+			c.Write([]byte("</ul>\n"))
 		} else {
 			c.Write([]byte("<h3>No results</h3>"))
 		}
+	} else {
+		c.Write([]byte("<h3>No results</h3>"))
 	}
 
 	p := &page.Page{}
@@ -75,9 +75,9 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	hfile, hstat := guessFile(p.FileDir+"_header", true)
 
 	if hstat != nil {
-		hcontent, herr := host.readFile(hfile)
+		hcontent, herr := host.readContentFile(hfile)
 		if herr == nil {
-			p.ContentHeader = template.HTML(hcontent)
+			p.ContentHeader = template.HTML(hcontent.Content)
 		}
 	}
 
@@ -85,9 +85,9 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	ffile, fstat := guessFile(p.FileDir+"_footer", true)
 
 	if fstat != nil {
-		fcontent, ferr := host.readFile(ffile)
+		fcontent, ferr := host.readContentFile(ffile)
 		if ferr == nil {
-			p.ContentFooter = template.HTML(fcontent)
+			p.ContentFooter = template.HTML(fcontent.Content)
 		}
 	}
 
