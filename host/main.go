@@ -661,28 +661,20 @@ func (host *Host) fileWatcher() error {
 					log.Printf("%s: got ev: %v\n", host.Name, ev)
 
 					// Is settings file?
-					if ev.Name == host.DocumentRoot+pathSeparator+settingsFile {
+					if strings.HasSuffix(ev.Name, settingsFile) {
 						log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
 						err := host.loadSettings()
 
 						if err != nil {
 							log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+pathSeparator+settingsFile)
 						}
-					}
-
-					// Is a template?
-					if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
-
+					} else {
 						if strings.HasSuffix(ev.Name, ".tpl") == true {
-							log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
+							log.Printf("%s: Reloading templates, %s changed", host.Name, ev.Name)
 							host.loadTemplates()
-
-							if err != nil {
-								log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
-							}
-
 						}
 					}
+
 				case err, ok := <-host.Watcher.Errors:
 					if !ok {
 						return
@@ -713,10 +705,6 @@ func (host *Host) loadSettings() error {
 		}
 	} else {
 		return fmt.Errorf(`error trying to open settings file (%s): %q`, file, err)
-	}
-
-	if host.Watcher != nil {
-		host.Watcher.Add(file)
 	}
 
 	host.Settings = settings
@@ -770,6 +758,10 @@ func New(name string, root string) (*Host, error) {
 
 	// Watcher
 	host.fileWatcher()
+	// Watch settings file
+	wd, _ := os.Getwd()
+	sf := path.Join(wd, host.DocumentRoot+pathSeparator+settingsFile)
+	host.Watcher.Add(sf)
 
 	// Loading host settings
 	if err = host.loadSettings(); err != nil {
@@ -782,6 +774,13 @@ func New(name string, root string) (*Host, error) {
 		log.Printf("Could not start host: %s\n", name)
 		return nil, err
 	}
+	tpldir := to.String(host.Settings.Get("content", "templates"))
+	if tpldir == "" {
+		tpldir = "templates"
+	}
+
+	td := path.Join(wd, host.DocumentRoot+pathSeparator+tpldir)
+	host.Watcher.Add(td)
 
 	log.Printf("Routing: %s -> %s\n", name, root)
 

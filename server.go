@@ -111,13 +111,13 @@ func (s server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 }
 
 // Loads settings
-func loadSettings(file string) (*yaml.Yaml, error) {
+func loadSettings() (*yaml.Yaml, error) {
 
 	var entries map[interface{}]interface{}
 	var ok bool
 
 	// Trying to read settings from file.
-	y, err := yaml.Open(file)
+	y, err := yaml.Open(*flagSettings)
 
 	if err != nil {
 		return nil, err
@@ -170,17 +170,18 @@ func settingsWatcher() (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 
 	if err == nil {
-		defer watcher.Close()
 
 		go func() {
+			defer watcher.Close()
 			for {
 				select {
 				case ev, ok := <-watcher.Events:
 					if !ok {
 						return
 					}
-					log.Printf("Trying to reload settings file %s...\n", ev.Name)
-					y, err := loadSettings(ev.Name)
+					log.Printf("luminos got ev: %v\n", ev)
+
+					y, err := loadSettings()
 					if err != nil {
 						log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
 					} else {

@@ -62,7 +62,7 @@ func (c *indexCommand) Execute() (err error) {
 
 	// Now that we're positively sure that we have a valid file, let's try to
 	// read settings from it.
-	if settings, err = loadSettings(*flagSettings); err != nil {
+	if settings, err = loadSettings(); err != nil {
 		return fmt.Errorf("error while reading settings file %s: %q", *flagSettings, err)
 	}
 

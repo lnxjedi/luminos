@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"net/http/fcgi"
 	"os"
+	"path"
 
 	"github.com/lnxjedi/cli"
 	"github.com/lnxjedi/to"
@@ -83,7 +84,7 @@ func (c *runCommand) Execute() (err error) {
 
 	// Now that we're positively sure that we have a valid file, let's try to
 	// read settings from it.
-	if settings, err = loadSettings(*flagSettings); err != nil {
+	if settings, err = loadSettings(); err != nil {
 		return fmt.Errorf("error while reading settings file %s: %q", *flagSettings, err)
 	}
 
@@ -104,7 +105,12 @@ func (c *runCommand) Execute() (err error) {
 
 	// Starting settings watcher.
 	if watch, err = settingsWatcher(); err == nil {
-		watch.Add(*flagSettings)
+		wd, _ := os.Getwd()
+		sf := path.Join(wd, *flagSettings)
+		err := watch.Add(sf)
+		if err != nil {
+			log.Fatalf("Error watching settings file: %v", err)
+		}
 	}
 
 	// Reading setttings.
