@@ -34,12 +34,19 @@ const pathSeparator = string(os.PathSeparator)
 // Version holds the software version.
 const Version = "v0.9.1-snapshot"
 
+// Commit of current build
+var Commit string
+
 func main() {
 	// Software properties.
 	cli.Name = "Luminos Markdown Server"
 	cli.Homepage = "https://github.com/lnxjedi/luminos"
 	cli.Author = "J. Carlos Nieto / David Parsley"
-	cli.Version = Version
+	if len(Commit) != 0 {
+		cli.Version = Version + " commit: " + Commit
+	} else {
+		cli.Version = Version
+	}
 
 	// Shows banner
 	cli.Banner()

@@ -26,8 +26,8 @@ do
 	echo "Building luminos for $BUILDOS"
 	if [ "$BUILDOS" = "windows" ]
 	then
-		GOOS=$BUILDOS go build -o luminos-windows.exe 
+		GOOS=$BUILDOS go build -ldflags "-X main.Commit=$COMMIT" -o luminos-windows.exe 
 	else
-		GOOS=$BUILDOS go build -o luminos-$BUILDOS
+		GOOS=$BUILDOS go build -ldflags "-X main.Commit=$COMMIT" -o luminos-$BUILDOS
 	fi
 done
