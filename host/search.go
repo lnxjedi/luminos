@@ -97,8 +97,11 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 
 	p.ProcessContent()
 
+	host.RLock()
+	ht := host.TemplateGroup
+	host.RUnlock()
 	// Applying template.
-	if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
+	if err = ht.ExecuteTemplate(w, "index.tpl", p); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 

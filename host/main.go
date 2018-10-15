@@ -33,6 +33,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -67,9 +68,11 @@ type Host struct {
 	Path string
 	// Settings
 	Settings *yaml.Yaml
-	// Templates (not fully functional yet)
-	Templates map[string]*template.Template
-	// Function map for templates.
+	// Template
+	TemplateGroup *template.Template
+	// Lock for template
+	*sync.RWMutex
+	// Function map for template.
 	template.FuncMap
 	// Standard request.
 	*http.Request
@@ -526,12 +529,17 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			p.ProcessContent()
 
+			host.RLock()
+			ht := host.TemplateGroup
+			host.RUnlock()
 			// Applying template.
 			template := "index.tpl"
 			if len(content.pageInfo.Template) != 0 {
-				template = content.pageInfo.Template
+				if t := ht.Lookup(content.pageInfo.Template); t != nil {
+					template = content.pageInfo.Template
+				}
 			}
-			if err = host.Templates[template].Execute(w, p); err != nil {
+			if err = ht.ExecuteTemplate(w, template, p); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				status = http.StatusInternalServerError
 			} else {
@@ -560,36 +568,9 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(strings.Join(logLine, " "))
 }
 
-func (host *Host) loadTemplate(file string) error {
-	var err error
-
-	// Reading template file.
-	var text string
-	if text, err = readRawFile(file); err != nil {
-		return err
-	}
-
-	// Fixing template.
-	text = fixDeprecatedSyntax(text)
-
-	// Allocating name.
-	name := path.Base(file)
-	parsed := template.New(name).Funcs(host.funcMap)
-
-	if _, err = parsed.Parse(text); err != nil {
-		return err
-	}
-
-	host.Templates[name] = parsed
-
-	return nil
-}
-
 // loadTemplates loads templates with .tpl extension from the templates
 // directory. At this moment only index.tpl is expected.
 func (host *Host) loadTemplates() error {
-	var err error
-	var fp *os.File
 
 	tpldir := to.String(host.Settings.Get("content", "templates"))
 
@@ -599,37 +580,29 @@ func (host *Host) loadTemplates() error {
 
 	tplroot := host.DocumentRoot + pathSeparator + tpldir
 
-	if fp, err = os.Open(tplroot); err != nil {
-		return fmt.Errorf("Error trying to open %s: %q", tplroot, err)
+	if _, err := os.Stat(tplroot); err != nil {
+		return fmt.Errorf("Error checking template dir %s: %q", tplroot, err)
 	}
-
-	defer fp.Close()
 
 	host.TemplateRoot = tplroot
 
-	var files []os.FileInfo
-	if files, err = fp.Readdir(-1); err != nil {
-		return fmt.Errorf("Error reading directory %s: %q", tplroot, err)
+	t := template.New(host.Name).Funcs(host.funcMap)
+	wd, _ := os.Getwd()
+	tglob := path.Join(wd, tplroot, "*")
+	if _, err := t.ParseGlob(tglob); err != nil {
+		log.Printf("Error parsing templates for %s: %v\n", host.Name, err)
 	}
-
-	for _, fp := range files {
-
-		if strings.HasSuffix(fp.Name(), ".tpl") == true {
-
-			file := host.TemplateRoot + pathSeparator + fp.Name()
-
-			err := host.loadTemplate(file)
-
-			if err != nil {
-				log.Printf("%s: Template error in file %s: %q\n", host.Name, file, err)
-			} else {
-				log.Printf("loaded template: %s\n", file)
-			}
-
+	for _, tpl := range t.Templates() {
+		if tpl.Name() != host.Name {
+			log.Printf("Parsed host %s template: %s\n", host.Name, tpl.Name())
 		}
 	}
+	log.Printf("Loaded templates for %s from %s\n", host.Name, tplroot)
+	host.Lock()
+	host.TemplateGroup = t
+	host.Unlock()
 
-	if _, ok := host.Templates["index.tpl"]; ok == false {
+	if def := host.TemplateGroup.Lookup("index.tpl"); def == nil {
 		return fmt.Errorf("default Template %s could not be found", "index.tpl")
 	}
 
@@ -736,7 +709,7 @@ func New(name string, root string) (*Host, error) {
 		Name:         strings.TrimRight(name, "/"),
 		Path:         strings.TrimRight(route, "/"),
 		DocumentRoot: root,
-		Templates:    make(map[string]*template.Template),
+		RWMutex:      new(sync.RWMutex),
 	}
 
 	host.funcMap = template.FuncMap{
