@@ -43,7 +43,7 @@ func main() {
 	cli.Homepage = "https://github.com/lnxjedi/luminos"
 	cli.Author = "J. Carlos Nieto / David Parsley"
 	if len(Commit) != 0 {
-		cli.Version = Version + " commit: " + Commit
+		cli.Version = Version + ":" + Commit
 	} else {
 		cli.Version = Version
 	}

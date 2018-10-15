@@ -84,7 +84,6 @@ func (c *indexCommand) Execute() (err error) {
 
 func init() {
 	// Describing the "index" subcommand.
-	fmt.Printf("Registering index")
 
 	cli.Register("index", cli.Entry{
 		Name:        "index",

@@ -17,7 +17,7 @@ then
 fi
 
 git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
-COMMIT=$(git rev-parse HEAD)
+COMMIT=$(git rev-parse --short HEAD)
 
 eval `go env`
 PLATFORMS=${1:-linux darwin windows}
