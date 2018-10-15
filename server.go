@@ -24,14 +24,14 @@ package main
 import (
 	"errors"
 	"fmt"
-	//"github.com/howeyc/fsnotify"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
+
 	"github.com/lnxjedi/luminos/host"
-	"github.com/lnxjedi/luminos/watcher"
 	"github.com/lnxjedi/to"
 	"github.com/lnxjedi/yaml"
 )
@@ -40,7 +40,7 @@ import (
 var hosts map[string]*host.Host
 
 // File watcher.
-var watch *watcher.Watcher
+var watch *fsnotify.Watcher
 
 type server struct {
 }
@@ -163,72 +163,38 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 	return y, nil
 }
 
-func settingsWatcher() error {
+func settingsWatcher() (*fsnotify.Watcher, error) {
 
 	var err error
 
-	/*
-		// Watching settings file for changes.
-		// Was not properly returning events on OSX.
-		// https://github.com/howeyc/fsnotify/issues/34
-
-		watcher, err := fsnotify.NewWatcher()
-
-		if err == nil {
-			defer watcher.Close()
-
-			go func() {
-				for {
-					select {
-					case ev := <-watcher.Event:
-						if ev == nil {
-							return
-						}
-						if ev.IsModify() {
-							log.Printf("Trying to reload settings file %s...\n", ev.Name)
-							y, err := loadSettings(ev.Name)
-							if err != nil {
-								log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
-							} else {
-								settings = y
-							}
-						} else if ev.IsDelete() {
-							watcher.RemoveWatch(ev.Name)
-							watcher.Watch(ev.Name)
-						}
-					case err := <-watcher.Error:
-						log.Printf("Watcher error: %q\n", err)
-					}
-				}
-			}()
-
-			watcher.Watch(settingsFile)
-		}
-	*/
-
-	// (Stupid) time based file modification watcher.
-	watch, err = watcher.New()
+	watcher, err := fsnotify.NewWatcher()
 
 	if err == nil {
+		defer watcher.Close()
+
 		go func() {
-			defer watch.Close()
 			for {
 				select {
-				case ev := <-watch.Event:
-					if ev.IsModify() {
-						y, err := loadSettings(ev.Name)
-						if err != nil {
-							log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
-						} else {
-							log.Printf("Reloading settings file %s.\n", ev.Name)
-							settings = y
-						}
+				case ev, ok := <-watcher.Events:
+					if !ok {
+						return
 					}
+					log.Printf("Trying to reload settings file %s...\n", ev.Name)
+					y, err := loadSettings(ev.Name)
+					if err != nil {
+						log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
+					} else {
+						settings = y
+					}
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						return
+					}
+					log.Printf("Watcher error: %q\n", err)
 				}
 			}
 		}()
-
 	}
 
-	return err
+	return watcher, err
 }

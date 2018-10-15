@@ -24,7 +24,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	//"github.com/howeyc/fsnotify"
 	"log"
 	"net"
 	"net/http"
@@ -104,8 +103,8 @@ func (c *runCommand) Execute() (err error) {
 	}
 
 	// Starting settings watcher.
-	if err = settingsWatcher(); err == nil {
-		watch.Watch(*flagSettings)
+	if watch, err = settingsWatcher(); err == nil {
+		watch.Add(*flagSettings)
 	}
 
 	// Reading setttings.

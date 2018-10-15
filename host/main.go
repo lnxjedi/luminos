@@ -22,10 +22,9 @@
 package host
 
 import (
-	"fmt"
-	//"github.com/howeyc/fsnotify"
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -36,8 +35,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
+
 	"github.com/lnxjedi/luminos/page"
-	"github.com/lnxjedi/luminos/watcher"
 	"github.com/lnxjedi/to"
 	"github.com/lnxjedi/yaml"
 	"github.com/russross/blackfriday"
@@ -78,8 +78,7 @@ type Host struct {
 	// Function map
 	funcMap template.FuncMap
 	// File watcher
-	//Watcher *fsnotify.Watcher
-	Watcher *watcher.Watcher
+	Watcher *fsnotify.Watcher
 	// Template root
 	TemplateRoot string
 }
@@ -583,11 +582,6 @@ func (host *Host) loadTemplate(file string) error {
 
 	host.Templates[name] = parsed
 
-	if host.Watcher != nil {
-		host.Watcher.RemoveWatch(file)
-		host.Watcher.Watch(file)
-	}
-
 	return nil
 }
 
@@ -647,105 +641,60 @@ func (host *Host) fileWatcher() error {
 
 	var err error
 
-	/*
-		// File watcher.
-		host.Watcher, err = fsnotify.NewWatcher()
-
-		if err == nil {
-
-			go func() {
-
-				for {
-
-					select {
-
-					case ev := <-host.Watcher.Event:
-
-						fmt.Printf("%s: got ev: %v\n", host.Name, ev)
-
-						if ev == nil {
-							return
-						}
-
-						if ev.IsModify() {
-							// Is settings file?
-							if ev.Name == host.DocumentRoot+pathSeparator+settingsFile {
-								log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
-								err := host.loadSettings()
-
-								if err != nil {
-									log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+pathSeparator+settingsFile)
-								}
-							}
-
-							// Is a template?
-							if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
-
-								if strings.HasSuffix(ev.Name, ".tpl") == true {
-									log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
-									host.loadTemplate(ev.Name)
-
-									if err != nil {
-										log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
-									}
-
-								}
-							}
-
-						} else if ev.IsDelete() {
-							// Attemping to re-add watcher.
-							host.Watcher.RemoveWatch(ev.Name)
-							host.Watcher.Watch(ev.Name)
-						}
-
-					}
-				}
-
-			}()
-
-		}
-	*/
-
-	// (Stupid) file modification watcher.
-	host.Watcher, err = watcher.New()
+	// File watcher.
+	host.Watcher, err = fsnotify.NewWatcher()
 
 	if err == nil {
 
 		go func() {
 
 			for {
+
 				select {
-				case ev := <-host.Watcher.Event:
 
-					if ev.IsModify() {
-						// Is settings file?
-						if ev.Name == host.DocumentRoot+pathSeparator+settingsFile {
-							log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
-							err := host.loadSettings()
+				case ev, ok := <-host.Watcher.Events:
 
-							if err != nil {
-								log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+pathSeparator+settingsFile)
-							}
-						}
+					if !ok {
+						return
+					}
 
-						// Is a template?
-						if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
-							if strings.HasSuffix(ev.Name, ".tpl") == true {
-								log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
-								host.loadTemplate(ev.Name)
-								if err != nil {
-									log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
-								}
-							}
+					log.Printf("%s: got ev: %v\n", host.Name, ev)
+
+					// Is settings file?
+					if ev.Name == host.DocumentRoot+pathSeparator+settingsFile {
+						log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
+						err := host.loadSettings()
+
+						if err != nil {
+							log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+pathSeparator+settingsFile)
 						}
 					}
+
+					// Is a template?
+					if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
+
+						if strings.HasSuffix(ev.Name, ".tpl") == true {
+							log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
+							host.loadTemplates()
+
+							if err != nil {
+								log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
+							}
+
+						}
+					}
+				case err, ok := <-host.Watcher.Errors:
+					if !ok {
+						return
+					}
+					log.Println("fsnotify error:", err)
 				}
 			}
+
 		}()
 	}
 
 	return err
-
 }
 
 // loadSettings loads settings for the host.
@@ -767,8 +716,7 @@ func (host *Host) loadSettings() error {
 	}
 
 	if host.Watcher != nil {
-		host.Watcher.RemoveWatch(file)
-		host.Watcher.Watch(file)
+		host.Watcher.Add(file)
 	}
 
 	host.Settings = settings
