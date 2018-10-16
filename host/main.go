@@ -588,7 +588,7 @@ func (host *Host) loadTemplates() error {
 
 	t := template.New(host.Name).Funcs(host.funcMap)
 	wd, _ := os.Getwd()
-	tglob := path.Join(wd, tplroot, "*")
+	tglob := path.Join(wd, tplroot, "*.tpl")
 	if _, err := t.ParseGlob(tglob); err != nil {
 		log.Printf("Error parsing templates for %s: %v\n", host.Name, err)
 	}
