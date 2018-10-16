@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -234,6 +235,10 @@ func (host *Host) settings(path string) []interface{} {
 		return nil
 	}
 
+	if reflect.ValueOf(val).Kind() != reflect.Slice {
+		log.Printf("invalid settings '%s' got value of Kind != Slice; return type: %T\n", path, val)
+		return []interface{}{}
+	}
 	ival := val.([]interface{})
 
 	for i := range ival {
