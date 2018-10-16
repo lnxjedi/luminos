@@ -108,6 +108,11 @@ var extensions = []string{
 	".md.tpl",
 }
 
+// Informational and error logging to stderr; access log goes to stdout
+func init() {
+	log.SetOutput(os.Stderr)
+}
+
 // fixDeprecatedSyntax fixes old template syntax.
 func fixDeprecatedSyntax(s string) string {
 
@@ -137,7 +142,7 @@ func (host *Host) GetContentPath() (string, error) {
 	}
 
 	for _, directory := range directories {
-		path := host.DocumentRoot + pathSeparator + directory
+		path := path.Join(host.DocumentRoot, directory)
 		if _, err := os.Stat(path); err == nil {
 			return path, nil
 		}
@@ -257,34 +262,43 @@ func (host *Host) anchor(url, text string) template.HTML {
 }
 
 // guessFile checks for files names and returns a guessed name.
-func guessFile(file string, descend bool) (string, os.FileInfo) {
-	stat, err := os.Stat(file)
+func guessFile(file string, descend bool) (f string, s os.FileInfo) {
+	var err error
+	f = file
+	// log.Printf("Guessing for '%s'", f)
+	// defer func() {
+	// 	log.Printf("Returning guessed file '%s'", f)
+	// }()
 
-	file = strings.TrimRight(file, pathSeparator)
+	s, err = os.Stat(f)
+
+	f = strings.TrimRight(file, pathSeparator)
 
 	if descend {
 		if err == nil {
-			if stat.IsDir() {
-				f, s := guessFile(file+pathSeparator+"index", true)
-				if s != nil {
-					return f, s
+			if s.IsDir() {
+				idx, statidx := guessFile(path.Join(file, "index"), true)
+				if statidx != nil {
+					return idx, statidx
 				}
 			}
-			return file, stat
+			return
 		}
 		for _, extension := range extensions {
-			f, s := guessFile(file+extension, false)
+			f, s = guessFile(file+extension, false)
 			if s != nil {
-				return f, s
+				return
 			}
 		}
 	}
 
 	if err == nil {
-		return file, stat
+		return
 	}
 
-	return "", nil
+	f = ""
+	s = nil
+	return
 }
 
 // readContentFile opens a file and reads its contents and frontmatter.
@@ -311,37 +325,44 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 		file = file[:len(file)-4]
 		buf = out.Bytes()
 	} else {
-		r := bytes.NewBuffer(buf)
+		// maximum length of frontmatter start delimiter always < 16
+		peek := make([]byte, 32)
+		copy(peek, buf)
+		r := bytes.NewBuffer(peek)
 		firstLine, err := r.ReadString('\n')
-		if err != nil {
-			return sc, err
-		}
-		var end string
-		switch firstLine {
-		case "---\n":
-			end = "---\n"
-		case "<!--\n":
-			end = "-->\n"
-		case "```yaml\n":
-			end = "```\n"
-		}
-		if len(end) != 0 {
-			var fmb bytes.Buffer
-			for {
-				line, err := r.ReadBytes('\n')
-				if err != nil {
-					return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
-				}
-				if string(line) == end {
-					break
-				}
-				fmb.Write(line)
+		if err == nil {
+			var end string
+			switch firstLine {
+			case "---\n":
+				end = "---\n"
+			case "<!--\n":
+				end = "-->\n"
+			case "```yaml\n":
+				end = "```\n"
 			}
-			err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
-			if err != nil {
-				return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
+			if len(end) != 0 {
+				secondLine, _ := r.ReadString('\n')
+				if secondLine == "#luminos\n" {
+					r = bytes.NewBuffer(buf)
+					r.ReadString('\n')
+					var fmb bytes.Buffer
+					for {
+						line, err := r.ReadBytes('\n')
+						if err != nil {
+							return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
+						}
+						if string(line) == end {
+							break
+						}
+						fmb.Write(line)
+					}
+					err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
+					if err != nil {
+						return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
+					}
+					buf = r.Bytes()
+				}
 			}
-			buf = r.Bytes()
 		}
 	}
 
@@ -399,10 +420,10 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Absolute local webroot.
-	webroot := host.DocumentRoot + pathSeparator + webrootdir
+	webroot := path.Join(host.DocumentRoot, webrootdir)
 
 	// Attempt to match a request with a file in webroot/.
-	localFile = webroot + pathSeparator + reqpath
+	localFile = path.Join(webroot, reqpath)
 
 	stat, err := os.Stat(localFile)
 
@@ -429,7 +450,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if status == http.StatusNotFound {
-		directFile := docroot + pathSeparator + reqpath
+		directFile := path.Join(docroot, reqpath)
 
 		stat, err = os.Stat(directFile)
 
@@ -449,7 +470,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if status == http.StatusNotFound {
 
 		// Defining a filename to look for.
-		testFile := docroot + pathSeparator + reqpath
+		testFile := path.Join(docroot, reqpath)
 
 		localFile, stat = guessFile(testFile, true)
 
@@ -511,7 +532,6 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
 				p.IsHome = true
 			}
-			fmt.Printf("FP: %s, FD: %s, BP: %s, BD: %s\n", p.FilePath, p.FileDir, p.BasePath, p.BaseDir)
 
 			// werc-like header and footer.
 			ffile, fstat := guessFile(p.FileDir+"_footer", true)
@@ -578,7 +598,7 @@ func (host *Host) loadTemplates() error {
 		tpldir = "templates"
 	}
 
-	tplroot := host.DocumentRoot + pathSeparator + tpldir
+	tplroot := path.Join(host.DocumentRoot, tpldir)
 
 	if _, err := os.Stat(tplroot); err != nil {
 		return fmt.Errorf("Error checking template dir %s: %q", tplroot, err)
@@ -639,7 +659,7 @@ func (host *Host) fileWatcher() error {
 						err := host.loadSettings()
 
 						if err != nil {
-							log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+pathSeparator+settingsFile)
+							log.Printf("%s: Could not reload host settings: %s\n", host.Name, path.Join(host.DocumentRoot, settingsFile))
 						}
 					} else {
 						if strings.HasSuffix(ev.Name, ".tpl") == true {
@@ -667,7 +687,7 @@ func (host *Host) loadSettings() error {
 
 	var settings *yaml.Yaml
 
-	file := host.DocumentRoot + pathSeparator + settingsFile
+	file := path.Join(host.DocumentRoot, settingsFile)
 
 	_, err := os.Stat(file)
 
@@ -717,7 +737,7 @@ func New(name string, root string) (*Host, error) {
 		"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
 		"asset":  func(s string) string { return host.asset(s) },
 		"include": func(f string) string {
-			s, err := readRawFile(host.DocumentRoot + pathSeparator + f)
+			s, err := readRawFile(path.Join(host.DocumentRoot, f))
 			if err != nil {
 				log.Printf("readRawFile: %q", err)
 			}
@@ -733,7 +753,7 @@ func New(name string, root string) (*Host, error) {
 	host.fileWatcher()
 	// Watch settings file
 	wd, _ := os.Getwd()
-	sf := path.Join(wd, host.DocumentRoot+pathSeparator+settingsFile)
+	sf := path.Join(wd, host.DocumentRoot, settingsFile)
 	host.Watcher.Add(sf)
 
 	// Loading host settings
@@ -752,7 +772,7 @@ func New(name string, root string) (*Host, error) {
 		tpldir = "templates"
 	}
 
-	td := path.Join(wd, host.DocumentRoot+pathSeparator+tpldir)
+	td := path.Join(wd, host.DocumentRoot, tpldir)
 	host.Watcher.Add(td)
 
 	log.Printf("Routing: %s -> %s\n", name, root)
