@@ -33,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/extemporalgenome/slug"
+	"github.com/lnxjedi/dig"
 )
 
 var titlePattern = regexp.MustCompile(`<h([\d])>(.+)</h[\d]>`)
@@ -69,6 +70,12 @@ type Page struct {
 
 	// Titles holds links to all page subtitles.
 	Titles map[int][]anchor
+
+	// Query holds the parsed map[string][]string from the URL
+	Query map[string][]string
+
+	// Data holds arbitrary data from frontmatter
+	Data dig.InterfaceMap
 
 	// An array that contains names and links of all the items on the document's
 	// root. Names that begin with a dot or an underscore are ignored from the
@@ -306,6 +313,7 @@ func (p *Page) CreateSideMenu() {
 	}
 }
 
+// ProcessContent performs some kind of processing of headings, gosh!
 func (p *Page) ProcessContent() {
 	content := string(p.Content)
 	titles := titlePattern.FindAllStringSubmatch(content, -1)

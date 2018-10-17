@@ -188,7 +188,6 @@ func settingsWatcher() (*fsnotify.Watcher, error) {
 					if !ok {
 						return
 					}
-					log.Printf("luminos got ev: %v\n", ev)
 
 					y, err := loadSettings()
 					if err != nil {

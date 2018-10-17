@@ -33,6 +33,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -90,6 +91,8 @@ type frontMatter struct {
 	Template string
 	// True when markdown content shouldn't be rendered
 	Raw bool
+	// Arbitrary data for the page
+	Data dig.InterfaceMap
 }
 
 type structuredContent struct {
@@ -246,6 +249,25 @@ func htmlText(text string) template.HTML {
 	return template.HTML(text)
 }
 
+// GetInt is a funcmap function that converts a value to an int; failing that it returns 0
+func getInt(i interface{}) int {
+	switch i.(type) {
+	case float64:
+		f := i.(float64)
+		return int(f)
+	case float32:
+		f := i.(float32)
+		return int(f)
+	case string:
+		if i, err := strconv.Atoi(i.(string)); err == nil {
+			return i
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
 // Function for funcMap that writes links.
 func (host *Host) anchor(url, text string) template.HTML {
 	if host.isExternalLink(url) {
@@ -302,6 +324,8 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 	var buf []byte
 	var err error
 
+	sc.pageInfo.Data = dig.New()
+
 	if buf, err = ioutil.ReadFile(file); err != nil {
 		return sc, err
 	}
@@ -342,7 +366,9 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 					for {
 						line, err := r.ReadBytes('\n')
 						if err != nil {
-							return sc, fmt.Errorf("Unterminated frontmatter reading %s", file)
+							msg := fmt.Sprintf("unterminated frontmatter reading %s", file)
+							log.Println(msg)
+							return sc, errors.New(msg)
 						}
 						if string(line) == end {
 							break
@@ -351,7 +377,9 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 					}
 					err := yaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
 					if err != nil {
-						return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
+						msg := fmt.Sprintf("invalid frontmatter reading %s: %v", file, err)
+						log.Println(msg)
+						return sc, errors.New(msg)
 					}
 					buf = r.Bytes()
 				}
@@ -507,6 +535,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			if err == nil {
 				p.Content = template.HTML(content.Content)
+				p.Data = content.pageInfo.Data
 			}
 
 			p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
@@ -541,6 +570,8 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.CreateSideMenu()
 
 			p.ProcessContent()
+
+			p.Query = req.URL.Query()
 
 			host.RLock()
 			ht := host.TemplateGroup
@@ -644,8 +675,6 @@ func (host *Host) fileWatcher() error {
 						return
 					}
 
-					log.Printf("%s: got ev: %v\n", host.Name, ev)
-
 					// Is settings file?
 					if strings.HasSuffix(ev.Name, settingsFile) {
 						log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
@@ -732,6 +761,7 @@ func New(name string, root string) (*Host, error) {
 		"url":    func(s string) string { return host.url(s) },
 		"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
 		"asset":  func(s string) string { return host.asset(s) },
+		"getint": getInt,
 		"include": func(f string) string {
 			s, err := readRawFile(path.Join(host.DocumentRoot, f))
 			if err != nil {
