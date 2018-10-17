@@ -24,16 +24,17 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
-
+	"github.com/ghodss/yaml"
+	"github.com/lnxjedi/dig"
 	"github.com/lnxjedi/luminos/host"
 	"github.com/lnxjedi/to"
-	"github.com/lnxjedi/yaml"
 )
 
 // Map of hosts.
@@ -111,28 +112,36 @@ func (s server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 }
 
 // Loads settings
-func loadSettings() (*yaml.Yaml, error) {
+func loadSettings() (dig.InterfaceMap, error) {
 
-	var entries map[interface{}]interface{}
+	var entries map[string]interface{}
 	var ok bool
 
 	// Trying to read settings from file.
-	y, err := yaml.Open(*flagSettings)
-
-	if err != nil {
-		return nil, err
+	_, err := os.Stat(*flagSettings)
+	var y dig.InterfaceMap
+	if err == nil {
+		if ydata, err := ioutil.ReadFile(*flagSettings); err != nil {
+			return nil, fmt.Errorf(`could not read settings file (%s): %q`, *flagSettings, err)
+		} else {
+			if err := yaml.Unmarshal(ydata, &y); err != nil {
+				return nil, fmt.Errorf(`parsing settings file (%s): %q`, *flagSettings, err)
+			}
+		}
+	} else {
+		return nil, fmt.Errorf(`error trying to open settings file (%s): %q`, *flagSettings, err)
 	}
 
 	// Loading and verifying host entries
-	if entries, ok = y.Get("hosts").(map[interface{}]interface{}); ok == false {
-		return nil, errors.New("missing \"hosts\" entry")
+	e := y.Get("hosts")
+	if entries, ok = e.(map[string]interface{}); !ok {
+		return nil, errors.New("missing 'hosts' entry")
 	}
 
 	h := map[string]*host.Host{}
 
 	// Populating host entries.
-	for key := range entries {
-		name := to.String(key)
+	for name := range entries {
 		path := to.String(entries[name])
 
 		info, err := os.Stat(path)

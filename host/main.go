@@ -38,13 +38,11 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-
+	"github.com/ghodss/yaml"
+	"github.com/lnxjedi/dig"
 	"github.com/lnxjedi/luminos/page"
 	"github.com/lnxjedi/to"
-	"github.com/lnxjedi/yaml"
 	"github.com/russross/blackfriday"
-
-	jyaml "github.com/ghodss/yaml"
 )
 
 const (
@@ -68,7 +66,7 @@ type Host struct {
 	// Main path
 	Path string
 	// Settings
-	Settings *yaml.Yaml
+	Settings dig.InterfaceMap
 	// Template
 	TemplateGroup *template.Template
 	// Lock for template
@@ -197,19 +195,14 @@ func (host *Host) isExternalLink(url string) bool {
 
 // setting function returns a setting value.
 func (host *Host) setting(path string) interface{} {
-	route := strings.Split(path, "/")
-	args := make([]interface{}, len(route))
-	for i := range route {
-		args[i] = route[i]
-	}
-	setting := host.Settings.Get(args...)
+	setting := host.Settings.PathGet(path)
 	return fixSetting(setting)
 }
 
 // fixSetting returns additional keys to make certain maps act like anchors.
 func fixSetting(setting interface{}) interface{} {
 
-	if m, ok := setting.(map[interface{}]interface{}); ok {
+	if m, ok := setting.(map[string]interface{}); ok {
 		for k, v := range m {
 			switch k {
 			case "text":
@@ -225,12 +218,7 @@ func fixSetting(setting interface{}) interface{} {
 
 // settings is a function that returns an array of settings.
 func (host *Host) settings(path string) []interface{} {
-	route := strings.Split(path, "/")
-	args := make([]interface{}, len(route))
-	for i := range route {
-		args[i] = route[i]
-	}
-	val := host.Settings.Get(args...)
+	val := host.Settings.PathGet(path)
 	if val == nil {
 		return nil
 	}
@@ -361,7 +349,7 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 						}
 						fmb.Write(line)
 					}
-					err := jyaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
+					err := yaml.Unmarshal(fmb.Bytes(), &sc.pageInfo)
 					if err != nil {
 						return sc, fmt.Errorf("Invalid frontmatter reading %s", file)
 					}
@@ -690,16 +678,19 @@ func (host *Host) fileWatcher() error {
 // loadSettings loads settings for the host.
 func (host *Host) loadSettings() error {
 
-	var settings *yaml.Yaml
+	var settings dig.InterfaceMap
 
 	file := path.Join(host.DocumentRoot, settingsFile)
 
 	_, err := os.Stat(file)
 
 	if err == nil {
-		settings, err = yaml.Open(file)
-		if err != nil {
-			return fmt.Errorf(`could not parse settings file (%s): %q`, file, err)
+		if sdata, err := ioutil.ReadFile(file); err != nil {
+			return fmt.Errorf(`could not read settings file (%s): %q`, file, err)
+		} else {
+			if err := yaml.Unmarshal(sdata, &settings); err != nil {
+				return fmt.Errorf(`parsing settings file (%s): %q`, file, err)
+			}
 		}
 	} else {
 		return fmt.Errorf(`error trying to open settings file (%s): %q`, file, err)

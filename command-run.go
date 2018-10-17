@@ -32,8 +32,8 @@ import (
 	"path"
 
 	"github.com/lnxjedi/cli"
+	"github.com/lnxjedi/dig"
 	"github.com/lnxjedi/to"
-	"github.com/lnxjedi/yaml"
 )
 
 // Default values
@@ -44,7 +44,7 @@ const (
 )
 
 // Global software settings.
-var settings *yaml.Yaml
+var settings dig.InterfaceMap
 
 // Command line settings.
 var flagSettings = flag.String("c", envSettingsFile, "Path to the settings.yaml file")
