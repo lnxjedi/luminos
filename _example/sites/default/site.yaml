@@ -23,7 +23,7 @@ page:
 
     # Top navigation bar.
     menu:
-      - { text: "Getting started with Luminos", url: "https://github.com/lnxjedi/luminos/getting-started" }
+      - { text: "Download Luminos", url: "https://github.com/lnxjedi/luminos/releases" }
 
     # Top-right navigation helper.
     menu_pull:

@@ -6,10 +6,10 @@ MDTOC: true
 ```
 # It works!
 
-This is **Luminos**[^lum] a markdown server written in **Go**[^go].
+This is **Luminos**[^lum] a markdown server written in **Go**[^go]. Originally written[^orig] by **José Nieto**[^jose], functionality has been extended and modified (with e.g. search and modular templates) to deliver more of a lightweight CMS by **David Parsley**[^parse].
 
 **Luminos**[^lum] is an Open Source project, feel free to browse and hack the
-source.
+source[^lum].
 
 Thanks for using **Luminos**!
 
@@ -230,3 +230,6 @@ sys.path.append("/usr/local/python")
 
 [^lum]: http://golang.org
 [^go]: https://github.com/lnxjedi/luminos
+[^jose]: https://github.com/xiam
+[^orig]: https://github.com/xiam/luminos
+[^parse]: https://github.com/parsley42

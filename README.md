@@ -20,8 +20,8 @@ go get github.com/lnxjedi/luminos
 ```
 rev@localhost > luminos
 
-Luminos Markdown Server (0.9) - https://github.com/lnxjedi/luminos
-by J. Carlos Nieto <jose.carlos@menteslibres.net>
+Luminos Markdown Server (v0.9.1-snapshot) - https://github.com/lnxjedi/luminos
+by J. Carlos Nieto / David Parsley
 
 Usage: luminos <arguments> <command>
 

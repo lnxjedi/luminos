@@ -30,6 +30,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bradleypeabody/fulltext"
 	"github.com/lnxjedi/dig"
 )
 
@@ -37,6 +38,10 @@ type anchor struct {
 	Text     string
 	URL      string
 	children []anchor
+}
+
+type host interface {
+	Search([]string, int) []fulltext.SearchResultItem
 }
 
 var homeAnchor = anchor{Text: "Home", URL: "/"}
@@ -106,6 +111,9 @@ type Page struct {
 
 	// True if the current document is / (home).
 	IsHome bool
+
+	// Pointer to the host for the search method
+	Host host
 }
 
 const (
@@ -309,6 +317,11 @@ func (p *Page) CreateSideMenu() {
 		}
 
 	}
+}
+
+// Search calls host.Search()
+func (p *Page) Search(terms []string, res int) []fulltext.SearchResultItem {
+	return p.Host.Search(terms, res)
 }
 
 var titlePattern = regexp.MustCompile(`<h([\d])>(.+)</h[\d]>`)

@@ -75,8 +75,8 @@
       {{ end }}
 
     </div>
-
     <div class="content container">
+
       {{ if not .IsHome }}
         {{ if .BreadCrumb }}
           <ul class="breadcrumb">
@@ -87,26 +87,24 @@
         {{ end }}
       {{ end }}
 
-      {{ if .Content }}
-        {{ if .TOC }}<h1>Contents:</h1>{{ end }}
-
-        {{ .Content }}
-
-      {{ else }}
-
-        {{ if .CurrentPage }}
-          <h1>{{ .CurrentPage.Text }}</h1>
-        {{ end }}
-
-        <ul>
-          {{ range .SideMenu }}
-            <li>
-              <a href="{{ asset .URL }}">{{ .Text }}</a>
-            </li>
+      <!-- search -->
+      {{ if .Query.terms }}
+        {{ $res := .Search .Query.terms 50 }}
+        {{ $nres := len $res }}
+        {{ if eq $nres 0 }}
+          <h3>No results</h3>
+        {{ else }}
+          <h3>Results:</h3>
+          <ul>
+          {{ range $res }}
+            {{ $res := printf "%s" .StoreValue }}
+            <li><a href="{{ $res }}">{{ $res }}</a></li>
           {{ end }}
-        </ul>
-
-      {{end}}
+          </ul>
+        {{ end }}
+      {{ else }}
+      <h3>No results</h3>
+      {{ end }}
 
       {{ if setting "page/body/copyright" }}
         <p>{{ setting "page/body/copyright" | html }}</p>

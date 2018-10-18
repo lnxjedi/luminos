@@ -22,6 +22,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -80,18 +81,14 @@ func index(docroot, content string) error {
 			} else {
 				fmt.Printf("Indexing %s: %s\n", pagetitle, cpath)
 			}
-			// Index the title
-			tdoc := fulltext.IndexDoc{
+			ic := bytes.NewBuffer(c)
+			// Make sure page title gets indexed
+			ic.Write([]byte(`\n` + pagetitle))
+			// Index the content + title
+			cdoc := fulltext.IndexDoc{
 				Id:         []byte("t:" + cpath),
 				StoreValue: []byte(cpath),
-				IndexValue: []byte(pagetitle),
-			}
-			idx.AddDoc(tdoc)
-			// Index the content
-			cdoc := fulltext.IndexDoc{
-				Id:         []byte(cpath),
-				StoreValue: []byte(cpath),
-				IndexValue: c,
+				IndexValue: ic.Bytes(),
 			}
 			idx.AddDoc(cdoc)
 		}

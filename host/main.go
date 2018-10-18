@@ -473,11 +473,6 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if reqpath == "/search" {
-		host.doSearch(w, req)
-		return
-	}
-
 	// Absolute document root.
 	var docroot string
 	if docroot, err = host.GetContentPath(); err != nil {
@@ -510,9 +505,9 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		localFile, stat = guessFile(testFile, true)
 
-		if stat != nil {
+		if stat != nil || reqpath == "/search" {
 
-			if reqpath != "" {
+			if reqpath != "" && stat != nil {
 				// Let's not accept paths ending in "/".
 				if stat.IsDir() == false {
 					if strings.HasSuffix(req.URL.Path, "/") == true {
@@ -532,86 +527,77 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			// Creating a page.
 			p := &page.Page{}
 
-			p.FilePath = localFile
 			p.BasePath = req.URL.Path
 
-			relPath := localFile[len(docroot):]
+			if stat != nil {
+				p.FilePath = localFile
+				relPath := localFile[len(docroot):]
 
-			if stat.IsDir() == false {
-				p.FileDir = path.Dir(localFile)
-				p.BasePath = path.Dir(relPath)
+				if stat.IsDir() == false {
+					p.FileDir = path.Dir(localFile)
+					p.BasePath = path.Dir(relPath)
+				} else {
+					p.FileDir = localFile
+					p.BasePath = relPath
+				}
+				p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
+				p.BasePath = strings.TrimRight(p.BasePath, pathSeparator) + pathSeparator
 			} else {
-				p.FileDir = localFile
-				p.BasePath = relPath
+				p.FilePath = docroot + pathSeparator
+				p.FileDir = docroot + pathSeparator
+				p.BasePath = "/"
+				p.Title = "Search"
 			}
 
-			// Reading contents.
-			content, err := host.readContentFile(localFile)
-
-			if err == nil {
-				p.Content = template.HTML(content.Content)
-				p.TOC = content.pageInfo.MDTOC
-				p.Data = content.pageInfo.Data
-			}
-
-			p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
-			p.BasePath = strings.TrimRight(p.BasePath, pathSeparator) + pathSeparator
-
-			// werc-like header and footer.
-			/* hfile, hstat := guessFile(p.FileDir+"_header", true)
-
-			if hstat != nil {
-				hcontent, herr := host.readContentFile(hfile)
-				if herr == nil {
-					p.ContentHeader = template.HTML(hcontent.Content)
+			tpl := "index.tpl"
+			host.RLock()
+			ht := host.TemplateGroup
+			host.RUnlock()
+			if stat != nil {
+				content, err := host.readContentFile(localFile)
+				if err == nil {
+					p.Content = template.HTML(content.Content)
+					p.TOC = content.pageInfo.MDTOC
+					p.Data = content.pageInfo.Data
+					if len(content.pageInfo.Template) != 0 {
+						if t := ht.Lookup(content.pageInfo.Template); t != nil {
+							tpl = content.pageInfo.Template
+						}
+					}
 				}
-			} */
-
-			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
-				p.IsHome = true
-			}
-
-			// werc-like header and footer.
-			/* ffile, fstat := guessFile(p.FileDir+"_footer", true)
-
-			if fstat != nil {
-				fcontent, ferr := host.readContentFile(ffile)
-				if ferr == nil {
-					p.ContentFooter = template.HTML(fcontent.Content)
+				if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
+					p.IsHome = true
 				}
-			} */
+			} else {
+				tpl = "search.tpl"
+				if t := ht.Lookup(tpl); t == nil {
+					http.Error(w, fmt.Sprintf("search.tpl not found"), http.StatusInternalServerError)
+					log.Printf("search.tpl not found for %s\n", host.Name)
+					status = http.StatusInternalServerError
+				}
+			}
 
 			p.CreateBreadCrumb()
 			p.CreateMenu()
 			p.CreateSideMenu()
 
-			// p.GenerateTitles()
-
+			p.Host = host
 			p.Query = req.URL.Query()
 
-			host.RLock()
-			ht := host.TemplateGroup
-			host.RUnlock()
-			// Applying template.
-			template := "index.tpl"
-			if len(content.pageInfo.Template) != 0 {
-				if t := ht.Lookup(content.pageInfo.Template); t != nil {
-					template = content.pageInfo.Template
+			if status != http.StatusInternalServerError {
+				if err = ht.ExecuteTemplate(w, tpl, p); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					status = http.StatusInternalServerError
+				} else {
+					status = http.StatusOK
 				}
 			}
-			if err = ht.ExecuteTemplate(w, template, p); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				status = http.StatusInternalServerError
-			} else {
-				status = http.StatusOK
-			}
-
 		}
 	}
 
 	if status == http.StatusNotFound {
 		http.Error(w, "Not found", http.StatusNotFound)
-		fmt.Printf("Path not found: %s\n", reqpath)
+		log.Printf("Path not found: %s\n", reqpath)
 	}
 
 	// Log line.

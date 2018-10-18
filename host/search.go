@@ -1,61 +1,51 @@
 package host
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
-	"net/http"
+	"log"
 	"path"
 	"strings"
 
 	"github.com/bradleypeabody/fulltext"
-	"github.com/lnxjedi/luminos/page"
 )
 
-func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
+// Search returns the results of a fulltext search on terms.
+func (host *Host) Search(terms []string, res int) []fulltext.SearchResultItem {
 
-	// Absolute document root.
-	var docroot string
-	var err error
+	empty := make([]fulltext.SearchResultItem, 0)
 
-	if docroot, err = host.GetContentPath(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if len(terms) == 0 || res == 0 {
+		return empty
 	}
 
-	var c bytes.Buffer
 	s, err := fulltext.NewSearcher(path.Join(host.DocumentRoot, "search.cdb"))
 	if err != nil {
-		http.Error(w, fmt.Sprintf("unable to open search index: %v", err), http.StatusInternalServerError)
-		return
+		log.Printf("unable to open search index for host %s: %v", host.Name, err)
+		return empty
 	}
 	defer s.Close()
-	q := req.URL.Query()
-	terms, ok := q["terms"]
-	if ok {
-		search := strings.Join(terms, " ")
-		sr, err := s.SimpleSearch(search, 50)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed search: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if len(sr.Items) > 0 {
-			l := make(map[string]struct{})
-			c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
-			c.Write([]byte("<ul>\n"))
-			for _, v := range sr.Items {
-				key := string(v.StoreValue)
-				_, found := l[key]
-				if !found {
-					si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
-					c.Write([]byte(si))
-					l[key] = struct{}{}
-				}
+	search := strings.Join(terms, " ")
+	sr, err := s.SimpleSearch(search, res)
+	if err != nil {
+		log.Printf("failed search: %v", err)
+		return empty
+	}
+	return sr.Items
+}
+
+/* 	if len(sr.Items) > 0 {
+		l := make(map[string]struct{})
+		c.Write([]byte(fmt.Sprintf("<h2>Search Results: \"%s\"</h2>", search)))
+		c.Write([]byte("<ul>\n"))
+		for _, v := range sr.Items {
+			key := string(v.StoreValue)
+			_, found := l[key]
+			if !found {
+				si := fmt.Sprintf("<li><a href=\"%s\">%s</a></li>\n", v.StoreValue, v.StoreValue)
+				c.Write([]byte(si))
+				l[key] = struct{}{}
 			}
-			c.Write([]byte("</ul>\n"))
-		} else {
-			c.Write([]byte("<h3>No results</h3>"))
 		}
+		c.Write([]byte("</ul>\n"))
 	} else {
 		c.Write([]byte("<h3>No results</h3>"))
 	}
@@ -106,4 +96,4 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	}
 
 	return
-}
+} */
