@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -110,6 +111,7 @@ var extensions = []string{
 	".html",
 	".txt",
 	".md.tpl",
+	".yaml",
 }
 
 // Informational and error logging to stderr; access log goes to stdout
@@ -321,25 +323,22 @@ func guessFile(file string, descend bool) (f string, s os.FileInfo) {
 // readContentFile opens a file and reads its contents and frontmatter.
 // If the file has the "*.md" extension, the content is rendered to HTML
 // unless Raw is set in the frontmatter.
-func (host *Host) readContentFile(file string) (structuredContent, error) {
-	var sc structuredContent
+func (host *Host) readContentFile(file string, defaults bool, sc *structuredContent) error {
 	var buf []byte
 	var err error
 
-	sc.pageInfo.Data = dig.New()
-
 	if buf, err = ioutil.ReadFile(file); err != nil {
-		return sc, err
+		return err
 	}
 
 	if strings.HasSuffix(file, ".tpl") {
 		var out bytes.Buffer
 		tpl, err := template.New("").Funcs(host.funcMap).Parse(string(buf))
 		if err != nil {
-			return sc, err
+			return err
 		}
 		if err := tpl.Execute(&out, nil); err != nil {
-			return sc, err
+			return err
 		}
 		file = file[:len(file)-4]
 		buf = out.Bytes()
@@ -360,19 +359,22 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 				end = "```\n"
 			}
 			if len(end) != 0 {
-				secondLine, _ := r.ReadString('\n')
-				if secondLine == "#luminos\n" {
+				var secondLine string
+				if !defaults {
+					secondLine, _ = r.ReadString('\n')
+				}
+				if defaults || secondLine == "#luminos\n" {
 					r = bytes.NewBuffer(buf)
 					r.ReadString('\n')
 					var fmb bytes.Buffer
 					for {
 						line, err := r.ReadBytes('\n')
-						if err != nil {
-							msg := fmt.Sprintf("unterminated frontmatter reading %s", file)
+						if err != nil && err != io.EOF {
+							msg := fmt.Sprintf("error reading frontmatter from %s: %v", file, err)
 							log.Println(msg)
-							return sc, errors.New(msg)
+							return errors.New(msg)
 						}
-						if string(line) == end {
+						if string(line) == end || err == io.EOF {
 							break
 						}
 						fmb.Write(line)
@@ -381,7 +383,7 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 					if err != nil {
 						msg := fmt.Sprintf("invalid frontmatter reading %s: %v", file, err)
 						log.Println(msg)
-						return sc, errors.New(msg)
+						return errors.New(msg)
 					}
 					buf = r.Bytes()
 				}
@@ -408,7 +410,7 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 
 	sc.Content = buf
 
-	return sc, nil
+	return nil
 }
 
 func chunk(value string) string {
@@ -549,12 +551,21 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				p.Title = "Search"
 			}
 
+			var content structuredContent
+			content.pageInfo.Data = dig.New()
+
+			// Read per-directory defaults
+			dfile, dstat := guessFile(p.FileDir+"_defaults", true)
+			if dstat != nil {
+				host.readContentFile(dfile, true, &content)
+			}
+
 			tpl := "index.tpl"
 			host.RLock()
 			ht := host.TemplateGroup
 			host.RUnlock()
 			if stat != nil {
-				content, err := host.readContentFile(localFile)
+				err := host.readContentFile(localFile, false, &content)
 				if err == nil {
 					p.Content = template.HTML(content.Content)
 					p.TOC = content.pageInfo.MDTOC
