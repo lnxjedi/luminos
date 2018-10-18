@@ -95,7 +95,7 @@ func (host *Host) doSearch(w http.ResponseWriter, req *http.Request) {
 	p.CreateMenu()
 	p.CreateSideMenu()
 
-	p.ProcessContent()
+	// p.GenerateTitles()
 
 	host.RLock()
 	ht := host.TemplateGroup

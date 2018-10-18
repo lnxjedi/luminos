@@ -1,15 +1,19 @@
+```yaml
+#luminos
+# This is an example of Luminos frontmatter.
+# Generate a TOC from markdown and set .TOC flag
+MDTOC: true
+```
 # It works!
 
-This is [Luminos][2] a markdown server written in [Go][1]. You can find some
-tips and tricks at the [getting started][5] page.
+This is **Luminos**[^lum] a markdown server written in **Go**[^go].
 
-[Luminos][2] is an Open Source project, feel free to [browse and hack][2] the
-source and, if you find this project useful, please consider [making a
-donation][4] to the [author][6].
+**Luminos**[^lum] is an Open Source project, feel free to browse and hack the
+source.
 
-Thanks for using [Luminos][3]!
+Thanks for using **Luminos**!
 
-## A few markdown examples
+# A few markdown examples
 
 [Markdown](http://daringfireball.net/projects/markdown/) is a very comfortable
 format for writing documents in plain text format.
@@ -17,6 +21,7 @@ format for writing documents in plain text format.
 Here are some examples on how your markdown code would be translated into HTML
 by [Luminos][3].
 
+## Emphasis
 <table class="table">
   <thead>
     <tr>
@@ -49,6 +54,18 @@ by [Luminos][3].
         <del>Striked-through</del>
       </td>
     </tr>
+  </tbody>
+</table>
+
+## Headings
+<table class="table">
+  <thead>
+    <tr>
+      <th>Markdown code</th>
+      <th>Result</th>
+    </tr>
+  </thead>
+  <tbody>
     <tr>
       <td>
         <code># First level header</code>
@@ -89,6 +106,18 @@ by [Luminos][3].
         <h5>Fifth level header</h5>
       </td>
     </tr>
+  </body>
+</table>
+
+## Links
+<table class="table">
+  <thead>
+    <tr>
+      <th>Markdown code</th>
+      <th>Result</th>
+    </tr>
+  </thead>
+  <tbody>
     <tr>
       <td>
         <code>[The Go Programming Language](http://golang.org)</code>
@@ -97,14 +126,18 @@ by [Luminos][3].
         <a href="http://golang.org">The Go Programming Language</a>
       </td>
     </tr>
+  </body>
+</table>
+
+## Lists and Tables
+<table class="table">
+  <thead>
     <tr>
-      <td>
-        <code>![A gopher](http://bit.ly/SLqdv6)</code>
-      </td>
-      <td>
-        <img src="http://bit.ly/SLqdv6" alt="A gopher!" />
-      </td>
+      <th>Markdown code</th>
+      <th>Result</th>
     </tr>
+  </thead>
+  <tbody>
     <tr>
       <td>
 <pre><code>* List item 1
@@ -161,42 +194,39 @@ Alice   | 23</code></pre>
         </table>
       </td>
     </tr>
-    <tr>
-      <td>
-<pre><code>```go
-import "foo"
-
-func main() {
-  foo.Bar()
-}
-```</code></pre>
-      </td>
-      <td>
-<pre><code class="go">import &quot;foo&quot;
-
-func main() {
-  foo.Bar()
-}
-</code></pre>
-      </td>
-    </tr>
-    <tr>
-      <td>
-<pre><code>```latex
-\LaTeX
-```</code></pre>
-      </td>
-      <td>
-<pre><code class="latex">\LaTeX
-</code></pre>
-      </td>
-    </tr>
-  </tbody>
+  </body>
 </table>
 
-[1]: http://golang.org
-[2]: https://github.com/xiam/luminos
-[3]: https://github.com/lnxjedi/luminos
-[4]: https://menteslibres.net/xiam/donate
-[5]: https://github.com/lnxjedi/luminos/getting-started
-[6]: https://menteslibres.net/xiam
+## Code
+
+### Code string formatting
+
+Using:
+
+<pre>Example of `code formatted strings`.</pre>
+
+Gives:
+
+Example of `code formatted strings`.
+
+### Code fences
+
+Using:
+
+<pre>```python
+import sys
+
+sys.path.append("/usr/local/python")
+```
+</pre>
+
+Gives:
+
+```python
+import sys
+
+sys.path.append("/usr/local/python")
+```
+
+[^lum]: http://golang.org
+[^go]: https://github.com/lnxjedi/luminos

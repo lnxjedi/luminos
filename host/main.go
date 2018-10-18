@@ -91,6 +91,8 @@ type frontMatter struct {
 	Template string
 	// True when markdown content shouldn't be rendered
 	Raw bool
+	// Set MDTOC to true to generate a TOC from Markdown
+	MDTOC bool
 	// Arbitrary data for the page
 	Data dig.InterfaceMap
 }
@@ -388,7 +390,20 @@ func (host *Host) readContentFile(file string) (structuredContent, error) {
 	}
 
 	if strings.HasSuffix(file, ".md") && !sc.pageInfo.Raw {
-		buf = blackfriday.Run(buf, blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.NoEmptyLineBeforeBlock))
+		htmlflags := blackfriday.FootnoteReturnLinks
+		if sc.pageInfo.MDTOC {
+			htmlflags |= blackfriday.TOC
+		}
+		renderparams := blackfriday.HTMLRendererParameters{
+			Flags: htmlflags,
+		}
+		hrender := blackfriday.NewHTMLRenderer(renderparams)
+		buf = blackfriday.Run(buf, blackfriday.WithExtensions(
+			blackfriday.CommonExtensions|
+				blackfriday.NoEmptyLineBeforeBlock|
+				blackfriday.AutoHeadingIDs|
+				blackfriday.Footnotes),
+			blackfriday.WithRenderer(hrender))
 	}
 
 	sc.Content = buf
@@ -535,6 +550,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			if err == nil {
 				p.Content = template.HTML(content.Content)
+				p.TOC = content.pageInfo.MDTOC
 				p.Data = content.pageInfo.Data
 			}
 
@@ -542,34 +558,34 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.BasePath = strings.TrimRight(p.BasePath, pathSeparator) + pathSeparator
 
 			// werc-like header and footer.
-			hfile, hstat := guessFile(p.FileDir+"_header", true)
+			/* hfile, hstat := guessFile(p.FileDir+"_header", true)
 
 			if hstat != nil {
 				hcontent, herr := host.readContentFile(hfile)
 				if herr == nil {
 					p.ContentHeader = template.HTML(hcontent.Content)
 				}
-			}
+			} */
 
 			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
 				p.IsHome = true
 			}
 
 			// werc-like header and footer.
-			ffile, fstat := guessFile(p.FileDir+"_footer", true)
+			/* ffile, fstat := guessFile(p.FileDir+"_footer", true)
 
 			if fstat != nil {
 				fcontent, ferr := host.readContentFile(ffile)
 				if ferr == nil {
 					p.ContentFooter = template.HTML(fcontent.Content)
 				}
-			}
+			} */
 
 			p.CreateBreadCrumb()
 			p.CreateMenu()
 			p.CreateSideMenu()
 
-			p.ProcessContent()
+			// p.GenerateTitles()
 
 			p.Query = req.URL.Query()
 

@@ -22,21 +22,16 @@
 package page
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"os"
 	"path"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
-	"github.com/extemporalgenome/slug"
 	"github.com/lnxjedi/dig"
 )
-
-var titlePattern = regexp.MustCompile(`<h([\d])>(.+)</h[\d]>`)
 
 type anchor struct {
 	Text     string
@@ -56,6 +51,9 @@ type Page struct {
 	// Title of the page. This is guessed from the current document. (It looks
 	// for the first H1, H2, ..., H6 tag).
 	Title string
+
+	// TOC indicates whether the TOC was automatically generated
+	TOC bool
 
 	// The HTML source of the current document.
 	Content template.HTML
@@ -313,8 +311,13 @@ func (p *Page) CreateSideMenu() {
 	}
 }
 
-// ProcessContent performs some kind of processing of headings, gosh!
-func (p *Page) ProcessContent() {
+var titlePattern = regexp.MustCompile(`<h([\d])>(.+)</h[\d]>`)
+
+/* NOTE/TODO: Configured blackfriday to automatically add ids to headings;
+   later it might be useful to generate a data structure for putting TOCs
+   in page templates. */
+// GenerateTitles populates page.Titles
+/* func (p *Page) GenerateTitles() {
 	content := string(p.Content)
 	titles := titlePattern.FindAllStringSubmatch(content, -1)
 	for _, title := range titles {
@@ -336,22 +339,23 @@ func (p *Page) ProcessContent() {
 					p.Titles[ll] = []anchor{}
 				}
 
-				r := fmt.Sprintf(`<h%d><a href="#%s" name="%s">%s</a></h%d>`, level, id, id, text, level)
+				// r := fmt.Sprintf(`<h%d><a href="#%s" name="%s">%s</a></h%d>`, level, id, id, text, level)
 				p.Titles[ll] = append(p.Titles[ll], anchor{Text: text, URL: "#" + id})
 
-				content = strings.Replace(content, title[0], r, 1)
+				// content = strings.Replace(content, title[0], r, 1)
 			}
 		}
 	}
 	p.Content = template.HTML(content)
-}
+} */
 
-func (p *Page) GetTitlesFromLevel(ll int) []anchor {
+// GetTitlesFromLevel can be called in templates to e.g. display a page index.
+/* func (p *Page) GetTitlesFromLevel(ll int) []anchor {
 	if p.Titles == nil || p.Titles[ll] == nil {
 		return []anchor{}
 	}
 	return p.Titles[ll]
-}
+} */
 
 func (p *Page) URLMatch(s string) bool {
 	re, err := regexp.Compile(s)
