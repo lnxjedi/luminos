@@ -3,30 +3,32 @@
 # You are viewing a YAML formatted file, read more about the format
 # at http://www.yaml.org.
 #
-# Note: Use two space indentations instead of the \t character.
-#
+# Notes:
+# - Use two space indentations instead of the \t character.
+# - Left-side elements must start with a Capital letter to be available in
+#   the template as e.g. {{ .Site.Page.Body.Title }}
 #
 
-page:
+Page:
   # Name of the site.
-  brand: "Luminos"
+  Brand: "Luminos"
 
   # Some properties for <head>.
-  head:
+  Head:
     # Title that appears on the <title> tag.
-    title: "Luminos markdown server."
+    Title: "Luminos markdown server."
 
   # Some properties for <body>.
-  body:
+  Body:
     # Page subtitle.
-    title: "Markdown server"
+    Title: "Markdown server"
 
     # Top navigation bar.
-    menu:
-      - { text: "Download Luminos", url: "https://github.com/lnxjedi/luminos/releases" }
+    Menu:
+      - { Text: "Download Luminos", URL: "https://github.com/lnxjedi/luminos/releases" }
 
     # Top-right navigation helper.
-    menu_pull:
-      - { text: "Home", url: "/" }
+    MenuPull:
+      - { Text: "Home", URL: "/" }
 
-    copyright: "&copy; 2012-2014. J. Carlos Nieto."
+    Copyright: "&copy; 2012-2014. J. Carlos Nieto. / 2018 David L. Parsley"

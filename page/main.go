@@ -80,6 +80,9 @@ type Page struct {
 	// Data holds arbitrary data from frontmatter
 	Data dig.InterfaceMap
 
+	// Site holds site settings set in site.yaml
+	Site *dig.InterfaceMap
+
 	// An array that contains names and links of all the items on the document's
 	// root. Names that begin with a dot or an underscore are ignored from the
 	// listing.

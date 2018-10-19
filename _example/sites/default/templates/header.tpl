@@ -9,14 +9,19 @@
     <!-- Enable responsiveness on mobile devices-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
+    {{ $title := "Luminos Website" }}
+    {{ if .Site.Page.Head.Title }}
+      {{ $title = .Site.Page.Head.Title }}
+    {{ end }}
+
     <title>
       {{ if .IsHome }}
-        {{ setting "page/head/title" }}
+        {{ .Site.Page.Head.Title }}
       {{ else }}
         {{ if .Title }}
-          {{ .Title }} {{ if setting "page/head/title" }} &middot; {{ setting "page/head/title" }} {{ end }}
+          {{ .Title }} {{ if .Site.Page.Head.Title }} &middot; {{ $title }} {{ end }}
         {{ else }}
-          {{ setting "page/head/title" }}
+          {{ $title }}
         {{ end }}
       {{ end }}
     </title>

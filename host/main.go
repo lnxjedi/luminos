@@ -32,7 +32,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -68,7 +67,7 @@ type Host struct {
 	// Main path
 	Path string
 	// Settings
-	Settings dig.InterfaceMap
+	Settings *dig.InterfaceMap
 	// Template
 	TemplateGroup *template.Template
 	// Lock for template
@@ -137,7 +136,9 @@ func fixDeprecatedSyntax(s string) string {
 func (host *Host) GetContentPath() (string, error) {
 	var directories []string
 
+	host.RLock()
 	contentdir := to.String(host.Settings.Get("content", "markdown"))
+	host.RUnlock()
 	if contentdir == "" {
 		directories = []string{
 			"content",
@@ -198,49 +199,6 @@ func (host *Host) url(url string) string {
 // isExternalLink returns true if the given URL is outside this host.
 func (host *Host) isExternalLink(url string) bool {
 	return isExternalLinkPattern.MatchString(url)
-}
-
-// setting function returns a setting value.
-func (host *Host) setting(path string) interface{} {
-	setting := host.Settings.PathGet(path)
-	return fixSetting(setting)
-}
-
-// fixSetting returns additional keys to make certain maps act like anchors.
-func fixSetting(setting interface{}) interface{} {
-
-	if m, ok := setting.(map[string]interface{}); ok {
-		for k, v := range m {
-			switch k {
-			case "text":
-				m["Text"] = v
-			case "link", "url":
-				m["URL"] = v
-			}
-		}
-	}
-
-	return setting
-}
-
-// settings is a function that returns an array of settings.
-func (host *Host) settings(path string) []interface{} {
-	val := host.Settings.PathGet(path)
-	if val == nil {
-		return nil
-	}
-
-	if reflect.ValueOf(val).Kind() != reflect.Slice {
-		log.Printf("invalid settings '%s' got value of Kind != Slice; return type: %T\n", path, val)
-		return []interface{}{}
-	}
-	ival := val.([]interface{})
-
-	for i := range ival {
-		ival[i] = fixSetting(ival[i])
-	}
-
-	return ival
 }
 
 // javascriptText is a function for funcMap that writes text as Javascript.
@@ -451,7 +409,9 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	reqpath = strings.TrimRight(reqpath, "/")
 
 	// Trying to match a file on webroot/
+	host.RLock()
 	webrootdir := to.String(host.Settings.Get("content", "webroot"))
+	host.RUnlock()
 
 	if webrootdir == "" {
 		webrootdir = "webroot"
@@ -563,7 +523,11 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			tpl := "index.tpl"
 			host.RLock()
 			ht := host.TemplateGroup
+			p.Site = host.Settings
 			host.RUnlock()
+			p.Query = req.URL.Query()
+			p.Host = host
+
 			if stat != nil {
 				err := host.readContentFile(localFile, false, &content)
 				if err == nil {
@@ -591,9 +555,6 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.CreateBreadCrumb()
 			p.CreateMenu()
 			p.CreateSideMenu()
-
-			p.Host = host
-			p.Query = req.URL.Query()
 
 			if status != http.StatusInternalServerError {
 				if err = ht.ExecuteTemplate(w, tpl, p); err != nil {
@@ -629,7 +590,9 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // directory. At this moment only index.tpl is expected.
 func (host *Host) loadTemplates() error {
 
+	host.RLock()
 	tpldir := to.String(host.Settings.Get("content", "templates"))
+	host.RUnlock()
 
 	if tpldir == "" {
 		tpldir = "templates"
@@ -738,7 +701,9 @@ func (host *Host) loadSettings() error {
 		return fmt.Errorf(`error trying to open settings file (%s): %q`, file, err)
 	}
 
-	host.Settings = settings
+	host.Lock()
+	host.Settings = &settings
+	host.Unlock()
 
 	return nil
 }
@@ -782,10 +747,10 @@ func New(name string, root string) (*Host, error) {
 			}
 			return s
 		},
-		"setting":  func(s string) interface{} { return host.setting(s) },
-		"settings": func(s string) []interface{} { return host.settings(s) },
-		"js":       javascriptText,
-		"html":     htmlText,
+		// "setting":  func(s string) interface{} { return host.setting(s) },
+		// "settings": func(s string) []interface{} { return host.settings(s) },
+		"js":   javascriptText,
+		"html": htmlText,
 	}
 
 	// Watcher
@@ -806,7 +771,9 @@ func New(name string, root string) (*Host, error) {
 		log.Printf("Could not start host: %s\n", name)
 		return nil, err
 	}
+	host.RLock()
 	tpldir := to.String(host.Settings.Get("content", "templates"))
+	host.RUnlock()
 	if tpldir == "" {
 		tpldir = "templates"
 	}
