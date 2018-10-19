@@ -1,12 +1,12 @@
 image:
-	docker image build -t luminos:0.9.1 .
+	docker image build -t luminos:0.9.2 .
 
 devrun:
-	docker container run --name luminos-example -p 9000:9000 -v $(PWD)/_example:/var/www luminos:0.9.1
+	docker container run --name luminos-example -p 9000:9000 -v $(PWD)/_example:/var/www luminos:0.9.2
 
 clean:
 	docker container kill luminos-example || :
 	docker container rm luminos-example || :
 
 allclean: clean
-	docker image rm luminos:0.9.1
+	docker image rm luminos:0.9.2
