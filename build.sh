@@ -26,7 +26,10 @@ do
 	echo "Building luminos for $BUILDOS"
 	if [ "$BUILDOS" = "windows" ]
 	then
-		GOOS=$BUILDOS go build -ldflags "-X main.Commit=$COMMIT" -o luminos-windows.exe 
+		GOOS=$BUILDOS go build -ldflags "-X main.Commit=$COMMIT" -o luminos-windows.exe
+	elif [ "$BUILDOS" = "linux" ]
+	then
+		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o luminos-linux
 	else
 		GOOS=$BUILDOS go build -ldflags "-X main.Commit=$COMMIT" -o luminos-$BUILDOS
 	fi

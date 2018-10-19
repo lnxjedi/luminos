@@ -1,46 +1,12 @@
-GOX_OSARCH          ?= "darwin/amd64 linux/amd64 linux/arm freebsd/386 freebsd/amd64 linux/386 windows/386"
-GOX_OUTPUT_DIR      ?= bin
-GH_ACCESS_TOKEN     ?= Missing access token.
-MESSAGE             ?= Latest release.
+image:
+	docker image build -t luminos:0.9.1 .
 
-binaries: clean
-	@mkdir -p $(GOX_OUTPUT_DIR) && \
-	gox -osarch=$(GOX_OSARCH) -output "$(GOX_OUTPUT_DIR)/{{.Dir}}_{{.OS}}_{{.Arch}}" && \
-	gzip bin/luminos_darwin_* && \
-	gzip bin/luminos_freebsd_* && \
-	gzip bin/luminos_linux_* && \
-	zip -r bin/luminos_windows_386.zip bin/luminos_windows_386.exe
-
-require-version:
-	@if [[ -z "$$VERSION" ]]; then echo "Missing \$$VERSION"; exit 1; fi
-
-release: binaries require-version
-	@RESP=$$(curl --silent --data '{ \
-		"tag_name": "v$(VERSION)", \
-		"name": "v$(VERSION)", \
-		"body": "$(MESSAGE)", \
-		"target_commitish": "$(git rev-parse --abbrev-ref HEAD)", \
-		"draft": false, \
-		"prerelease": false \
-	}' "https://api.github.com/repos/xiam/luminos/releases?access_token=$(GH_ACCESS_TOKEN)") && \
-	\
-	UPLOAD_URL_TEMPLATE=$$(echo $$RESP | python -mjson.tool | grep upload_url | awk '{print $$2}' | sed s/,$$//g | sed s/'"'//g) && \
-	if [[ -z "$$UPLOAD_URL_TEMPLATE" ]]; then echo $$RESP; exit 1; fi && \
-	\
-	for ASSET in $$(ls -1 bin/); do \
-		UPLOAD_URL=$$(echo $$UPLOAD_URL_TEMPLATE | sed s/"{?name,label}"/"?access_token=$(GH_ACCESS_TOKEN)\&name=$$ASSET"/g) && \
-		MIME_TYPE=$$(file --mime-type bin/$$ASSET | awk '{print $$2}') && \
-		curl --silent -H "Content-Type: $$MIME_TYPE" --data-binary @bin/$$ASSET $$UPLOAD_URL > /dev/null && \
-		echo "-> $$ASSET OK." \
-	; done && \
-	$(MAKE) docker-push
+devrun:
+	docker container run --name luminos-example -p 9000:9000 -v $(PWD)/_example:/var/www luminos:0.9.1
 
 clean:
-	@rm -rf $(GOX_OUTPUT_DIR)
+	docker container kill luminos-example || :
+	docker container rm luminos-example || :
 
-docker:
-	docker build -t menteslibres/luminos .
-
-docker-push: docker require-version
-	docker tag menteslibres/luminos menteslibres/luminos:$(VERSION)
-	docker push menteslibres/luminos:$(VERSION)
+allclean: clean
+	docker image rm luminos:0.9.1
