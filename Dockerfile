@@ -1,17 +1,11 @@
-FROM debian:jessie
+FROM alpine:latest
 
-ENV VERSION 0.9.3
+COPY luminos-linux /usr/local/bin/luminos
 
-RUN apt-get update
+RUN chmod +x /usr/local/bin/luminos
 
-RUN apt-get install -y curl
+WORKDIR /var/www
 
-ENV LUMINOS_URL https://github.com/xiam/luminos/releases/download/v$VERSION/luminos_linux_amd64.gz
+EXPOSE 8080
 
-RUN curl --silent -L ${LUMINOS_URL} | gzip -d > /bin/luminos
-
-RUN chmod +x /bin/luminos
-
-EXPOSE 9000
-
-ENTRYPOINT [ "/bin/luminos" ]
+ENTRYPOINT [ "/usr/local/bin/luminos" ]
