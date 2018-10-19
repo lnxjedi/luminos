@@ -32,7 +32,7 @@ import (
 const pathSeparator = string(os.PathSeparator)
 
 // Version holds the software version.
-const Version = "v0.9.2"
+const Version = "v0.9.3-snapshot"
 
 // Commit of current build
 var Commit string
