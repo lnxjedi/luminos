@@ -145,9 +145,8 @@ func (host *Host) GetIndexPath() (string, error) {
 	if len(ipath) > 0 {
 		if path.IsAbs(ipath) {
 			return ipath, nil
-		} else {
-			return path.Join(wd, ipath), nil
 		}
+		return path.Join(wd, ipath), nil
 	} else {
 		cpath, err := host.GetContentPath()
 		if err != nil {

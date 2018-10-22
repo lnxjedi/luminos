@@ -92,8 +92,12 @@ func (c *runCommand) Execute() (err error) {
 		for name, host := range hosts {
 			content, err := host.GetContentPath()
 			if err == nil {
-				fmt.Printf("Host '%s' has content path '%s'\n", name, content)
-				err := index(host.DocumentRoot, content)
+				ifile, err := host.GetIndexPath()
+				if err != nil {
+					return fmt.Errorf("error getting index path for '%s': %v", name, err)
+				}
+				fmt.Printf("Creating '%s' for host '%s' with content path '%s'\n", ifile, name, content)
+				err = index(ifile, content)
 				if err != nil {
 					return fmt.Errorf("error indexing '%s': %v", name, err)
 				}
