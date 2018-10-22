@@ -132,6 +132,31 @@ func fixDeprecatedSyntax(s string) string {
 	return s
 }
 
+// GetIndexPath returns the absolute path to the search index
+// for a host.
+func (host *Host) GetIndexPath() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	host.RLock()
+	ipath := to.String(host.Settings.Get("searchindex"))
+	host.RUnlock()
+	if len(ipath) > 0 {
+		if path.IsAbs(ipath) {
+			return ipath, nil
+		} else {
+			return path.Join(wd, ipath), nil
+		}
+	} else {
+		cpath, err := host.GetContentPath()
+		if err != nil {
+			return "", err
+		}
+		return path.Join(wd, cpath, "search.cdb"), nil
+	}
+}
+
 // GetContentPath provides the relative path to site content
 func (host *Host) GetContentPath() (string, error) {
 	var directories []string

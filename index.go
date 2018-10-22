@@ -43,13 +43,13 @@ var fileExtensions = map[string]bool{
 
 var camelCaseRegex = regexp.MustCompile("([a-z][a-z])([A-Z][a-z])")
 
-func index(docroot, content string) error {
+func index(idxfile, content string) error {
 	var f *os.File
 	var err error
 
 	content = path.Clean(content)
 
-	f, err = os.Create(path.Join(docroot, "search.cdb"))
+	f, err = os.Create(idxfile)
 	if err != nil {
 		return fmt.Errorf("creating index file: %v", err)
 	}

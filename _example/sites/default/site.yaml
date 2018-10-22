@@ -7,7 +7,9 @@
 # - Use two space indentations instead of the \t character.
 # - Left-side elements must start with a Capital letter to be available in
 #   the template as e.g. {{ .Site.Page.Body.Title }}
-#
+# - Settings not references in pages are lowercase
+
+searchindex: "/tmp/lumex-search.cdb"
 
 Page:
   # Name of the site.
