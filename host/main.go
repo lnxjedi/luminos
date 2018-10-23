@@ -89,7 +89,7 @@ type Host struct {
 // Page frontmatter
 type frontMatter struct {
 	Template string
-	// True when markdown content shouldn't be rendered
+	// True when content shouldn't be rendered; e.g. raw HTML or javascript-rendered MD
 	Raw bool
 	// Set MDTOC to true to generate a TOC from Markdown
 	MDTOC bool
