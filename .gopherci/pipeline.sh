@@ -10,19 +10,19 @@ then
 fi
 
 # Get dependencies
-AddTask localexec go get -v -t -d ./...
+AddTask exec go get -v -t -d ./...
 
 # Install required tools
-AddTask localexec ./.gopherci/tools.sh
+AddTask exec ./.gopherci/tools.sh
 
 # Publish coverage results
-#AddTask localexec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+#AddTask exec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 # Do a full build for all platforms
-AddTask localexec ./build.sh
+AddTask exec ./build.sh
 
 # Publish archives to github
-AddTask localexec ./.gopherci/publish.sh
+AddTask exec ./.gopherci/publish.sh
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
