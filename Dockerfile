@@ -1,10 +1,9 @@
 FROM alpine:latest
 
-#RUN wget https://github.com/lnxjedi/luminos/releases/download/v0.9.3/luminos-linux -O /usr/local/bin/luminos \
-#  && chmod a+rx /usr/local/bin/luminos
+ARG version=0.9.4-snapshot
 
-COPY luminos-linux /usr/local/bin/luminos
-RUN chmod a+rx /usr/local/bin/luminos
+RUN wget https://github.com/lnxjedi/luminos/releases/download/${version}/luminos-linux -O /usr/local/bin/luminos \
+ && chmod a+rx /usr/local/bin/luminos
 
 USER daemon:daemon
 
