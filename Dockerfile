@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-ARG version=0.9.4-snapshot
+ARG version=v0.9.4-snapshot
 
 RUN wget https://github.com/lnxjedi/luminos/releases/download/${version}/luminos-linux -O /usr/local/bin/luminos \
  && chmod a+rx /usr/local/bin/luminos
