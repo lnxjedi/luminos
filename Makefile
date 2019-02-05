@@ -1,8 +1,8 @@
-image: luminos-linux
-	docker image build -t luminos:latest .
+luminos: *.go host/*.go page/*.go go.*
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -a -tags 'netgo osusergo static_build' -o luminos
 
-luminos-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags 'netgo osusergo static_build' -o luminos-linux
+image:
+	docker image build -t luminos:latest .
 
 devrun:
 	docker container run --name luminos-example -p 9000:9000 -v $(PWD)/_example:/var/www luminos:latest
