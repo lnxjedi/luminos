@@ -7,10 +7,9 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 if [ -n "$NOTIFY_USER" ]
 then
     FailTask notify $NOTIFY_USER "Luminos build failed"
+    # Email the job history if it fails
+    FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user $NOTIFY_USER"
 fi
-
-# Get dependencies
-AddTask exec go get -v -t -d ./...
 
 # Install required tools
 AddTask exec ./.gopherci/tools.sh
