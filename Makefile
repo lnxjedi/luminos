@@ -12,5 +12,4 @@ clean:
 	docker container rm luminos-example || :
 
 allclean: clean
-	rm luminos-linux || :
-	docker image rm luminos:0.9.3
+	docker image rm luminos:latest
